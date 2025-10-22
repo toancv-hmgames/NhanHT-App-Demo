@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 const categories = <String>[
   'Hot', 'New', 'Romance', 'Werewolf', 'Sci-fi Ro', 'Fantasy', 'Wuxia'
 ];
-const backgroundColor = Color(0xFF0F0F29);
+
+class AppConsts {
+  static const categories = <String>[
+    'Hot', 'New', 'Romance', 'Werewolf', 'Sci-fi Ro', 'Fantasy', 'Wuxia'
+  ];
+}
+
+class AppColor {
+  static const background = Color(0xFF0F0F29);
 
 //app shell
-const defaultIconColor = Color(0xFF6A6A8B);
-const chooseIconColor = Color(0xFFFEBCC6);
-
+  static const defaultIcon = Color(0xFF6A6A8B);
+  static const chooseIcon = Color(0xFFFEBCC6);
 //discover
-const hotColor = Color(0xFFFF6A00);
+  static const hotColor = Color(0xFFFF6A00);
+}

@@ -15,7 +15,7 @@ class DiscoverPage extends ConsumerWidget {
     final catIdx = ref.watch(discoverCategoryIndexProvider);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: AppColor.background,
       body: SafeArea(
         child: state.books.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -100,7 +100,7 @@ class DiscoverPage extends ConsumerWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       color: selected
-                                          ? hotColor
+                                          ? AppColor.hotColor
                                           : Colors.white.withOpacity(0.8),
                                     ),
                                   ),
@@ -109,7 +109,7 @@ class DiscoverPage extends ConsumerWidget {
                                     height: 3,
                                     width: selected ? 18 : 0,
                                     decoration: BoxDecoration(
-                                      color: hotColor,
+                                      color: AppColor.hotColor,
                                       borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),

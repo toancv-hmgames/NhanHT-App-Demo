@@ -1,16 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-
-import '../domain/entities.dart';
 import '../domain/usecases.dart';
-
-class DiscoverState {
-  final AsyncValue<List<Book>> books;
-  const DiscoverState({this.books = const AsyncLoading()});
-
-  DiscoverState copyWith({AsyncValue<List<Book>>? books}) =>
-      DiscoverState(books: books ?? this.books);
-}
+import 'discover_state.dart';
 
 class DiscoverVM extends StateNotifier<DiscoverState> {
   final GetBooks _getBooks;

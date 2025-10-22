@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:story_reading_app/gen/assets.gen.dart';
 
 import '../../../share/const_value.dart';
 import '../../discover/presentation/DiscoverPage.dart';
 import '../../library/presentation/library_page.dart';
+import 'widgets/custom_widgets.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -24,7 +25,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         const DiscoverPage(),
       ][index],
       bottomNavigationBar: NavigationBar(
-        backgroundColor: backgroundColor,
+        backgroundColor: AppColor.background,
         selectedIndex: index,
         indicatorColor: Colors.transparent,
         elevation: 0,
@@ -34,49 +35,22 @@ class _AppShellState extends ConsumerState<AppShell> {
           }
         },
         destinations: [
-          NavigationDestination(
-            icon: SvgPicture.asset(
-              'assets/icons/library.svg',
-              width: 24,
-              height: 24,
-              color: defaultIconColor,
-            ),
-            selectedIcon: SvgPicture.asset(
-              'assets/icons/library.svg',
-              width: 24,
-              height: 24,
-              color: chooseIconColor,
-            ),
+          navItem(
+            iconPath: Assets.icons.library,
             label: 'Library',
           ),
-          NavigationDestination(
-              icon: SvgPicture.asset(
-                'assets/icons/discovery.svg',
-                width: 24,
-                height: 24,
-                color: defaultIconColor,
-              ),
-              selectedIcon: SvgPicture.asset(
-                'assets/icons/discovery.svg',
-                width: 24,
-                height: 24,
-                color: chooseIconColor,
-              ),
-              label: 'Discover'),
-          NavigationDestination(
-              icon: SvgPicture.asset(
-                'assets/icons/rewards.svg',
-                width: 24,
-                height: 24,
-              ),
-              label: 'Rewards'),
-          NavigationDestination(
-              icon: SvgPicture.asset(
-                'assets/icons/profile.svg',
-                width: 24,
-                height: 24,
-              ),
-              label: 'Me'),
+          navItem(
+            iconPath: Assets.icons.discovery,
+            label: 'Discover',
+          ),
+          navItem(
+            iconPath: Assets.icons.rewards,
+            label: 'Rewards',
+          ),
+          navItem(
+            iconPath: Assets.icons.profile,
+            label: 'Me',
+          ),
         ],
       ),
     );

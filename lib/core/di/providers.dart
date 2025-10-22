@@ -11,6 +11,7 @@ import '../../features/discover/domain/usecases.dart' as uc;
 
 import '../../features/discover/data/catalog_repository_impl.dart';
 import '../../features/discover/data/import_job.dart';
+import '../../features/discover/presentation/discover_state.dart';
 import '../../features/discover/presentation/discover_view_model.dart';
 
 // Data Sources
