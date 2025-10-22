@@ -1,0 +1,6 @@
+<resources>
+    <color name="background">#0F0F29</color>
+    <color name="defaultIcon">#6A6A8B</color>
+    <color name="chooseIcon">#FEBCC6</color>
+    <color name="hotColor">#FF6A00</color>
+</resources>

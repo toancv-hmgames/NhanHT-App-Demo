@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:story_reading_app/gen/assets.gen.dart';
 
+import '../../../gen/colors.gen.dart';
 import '../../../share/const_value.dart';
-import '../../discover/presentation/DiscoverPage.dart';
+import '../../discover/presentation/discover_page.dart';
 import '../../library/presentation/library_page.dart';
-import 'widgets/custom_widgets.dart';
+import 'widgets/nav_item.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -25,7 +26,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         const DiscoverPage(),
       ][index],
       bottomNavigationBar: NavigationBar(
-        backgroundColor: AppColor.background,
+        backgroundColor: ColorName.background,
         selectedIndex: index,
         indicatorColor: Colors.transparent,
         elevation: 0,
@@ -35,19 +36,19 @@ class _AppShellState extends ConsumerState<AppShell> {
           }
         },
         destinations: [
-          navItem(
+          NavItem(
             iconPath: Assets.icons.library,
             label: 'Library',
           ),
-          navItem(
+          NavItem(
             iconPath: Assets.icons.discovery,
             label: 'Discover',
           ),
-          navItem(
+          NavItem(
             iconPath: Assets.icons.rewards,
             label: 'Rewards',
           ),
-          navItem(
+          NavItem(
             iconPath: Assets.icons.profile,
             label: 'Me',
           ),

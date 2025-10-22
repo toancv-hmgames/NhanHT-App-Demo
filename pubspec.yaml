@@ -48,4 +48,10 @@ flutter:
     - assets/books/book_b/chapters/
     - assets/icons/
     - assets/images/
+    - assets/colors/
 
+flutter_gen:
+  colors:
+    enabled: true
+    inputs:
+      - assets/colors/colors.xml

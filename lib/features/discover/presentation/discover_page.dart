@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:story_reading_app/gen/colors.gen.dart';
 import '../../../core/di/providers.dart';
 import '../../../share/const_value.dart';
 import 'widgets/book_tile.dart';
@@ -15,7 +16,7 @@ class DiscoverPage extends ConsumerWidget {
     final catIdx = ref.watch(discoverCategoryIndexProvider);
 
     return Scaffold(
-      backgroundColor: AppColor.background,
+      backgroundColor: ColorName.background,
       body: SafeArea(
         child: state.books.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -30,7 +31,7 @@ class DiscoverPage extends ConsumerWidget {
                     return title.contains(q) || author.contains(q);
                   }).toList();
 
-            final cat = categories[catIdx];
+            final cat = AppConsts.categories[catIdx];
             final byCategory = filtered.where((b) => b.genres == cat).toList();
 
             if (filtered.isEmpty) {
@@ -83,7 +84,7 @@ class DiscoverPage extends ConsumerWidget {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
-                        children: List.generate(categories.length, (i) {
+                        children: List.generate(AppConsts.categories.length, (i) {
                           final selected = i == catIdx;
                           return Padding(
                             padding: const EdgeInsets.only(right: 16),
@@ -96,11 +97,11 @@ class DiscoverPage extends ConsumerWidget {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   Text(
-                                    categories[i],
+                                    AppConsts.categories[i],
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       color: selected
-                                          ? AppColor.hotColor
+                                          ? ColorName.hotColor
                                           : Colors.white.withOpacity(0.8),
                                     ),
                                   ),
@@ -109,7 +110,7 @@ class DiscoverPage extends ConsumerWidget {
                                     height: 3,
                                     width: selected ? 18 : 0,
                                     decoration: BoxDecoration(
-                                      color: AppColor.hotColor,
+                                      color: ColorName.hotColor,
                                       borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),

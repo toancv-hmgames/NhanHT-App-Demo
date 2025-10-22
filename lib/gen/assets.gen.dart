@@ -34,6 +34,16 @@ class $AssetsBooksGen {
   $AssetsBooksEGen get e => const $AssetsBooksEGen();
 }
 
+class $AssetsColorsGen {
+  const $AssetsColorsGen();
+
+  /// File path: assets/colors/colors.xml
+  String get colors => 'assets/colors/colors.xml';
+
+  /// List of all assets
+  List<String> get values => [colors];
+}
+
 class $AssetsIconsGen {
   const $AssetsIconsGen();
 
@@ -422,6 +432,7 @@ class Assets {
 
   static const $AssetsBooksGen books = $AssetsBooksGen();
   static const String booksJson = 'assets/books.json';
+  static const $AssetsColorsGen colors = $AssetsColorsGen();
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
 
