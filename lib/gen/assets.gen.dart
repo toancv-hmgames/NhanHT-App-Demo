@@ -62,8 +62,18 @@ class $AssetsIconsGen {
   /// File path: assets/icons/rewards.svg
   String get rewards => 'assets/icons/rewards.svg';
 
+  /// File path: assets/icons/search.svg
+  String get search => 'assets/icons/search.svg';
+
   /// List of all assets
-  List<String> get values => [discovery, giftIcon, library, profile, rewards];
+  List<String> get values => [
+    discovery,
+    giftIcon,
+    library,
+    profile,
+    rewards,
+    search,
+  ];
 }
 
 class $AssetsImagesGen {

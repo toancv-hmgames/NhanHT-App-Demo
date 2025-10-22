@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
-/// Thanh search dạng pill như ảnh
+import '../../../../gen/assets.gen.dart';
+
 class SearchPill extends StatefulWidget {
   final String hint;
   final String initial;
@@ -43,7 +45,7 @@ class SearchPillState extends State<SearchPill> {
 
   @override
   Widget build(BuildContext context) {
-    final fill = Colors.white.withOpacity(0.08);
+    final fill = Color(0xFF2B2B68);
     return Container(
       height: 40,
       decoration: BoxDecoration(
@@ -53,7 +55,15 @@ class SearchPillState extends State<SearchPill> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          const Icon(Icons.search, size: 20, color: Colors.white70),
+          SvgPicture.asset(
+            Assets.icons.search,
+            width: 15,
+            height: 15,
+            colorFilter: const ColorFilter.mode(
+              Colors.white,
+              BlendMode.srcIn,
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -63,7 +73,13 @@ class SearchPillState extends State<SearchPill> {
               cursorColor: Colors.white70,
               decoration: InputDecoration(
                 hintText: widget.hint,
-                hintStyle: const TextStyle(color: Colors.white54),
+                hintStyle: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0,
+                  height: 1.0,
+                ),
                 border: InputBorder.none,
                 isDense: true,
               ),

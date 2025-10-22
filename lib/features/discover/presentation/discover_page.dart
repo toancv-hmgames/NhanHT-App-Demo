@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:story_reading_app/gen/colors.gen.dart';
 import '../../../core/di/providers.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../share/const_value.dart';
 import 'widgets/book_tile.dart';
+import 'widgets/gradient_category_tab.dart';
 import 'widgets/search_field.dart';
 
 class DiscoverPage extends ConsumerWidget {
@@ -23,6 +25,8 @@ class DiscoverPage extends ConsumerWidget {
           error: (err, _) => Center(child: Text('Lỗi: $err')),
           data: (books) {
             final q = query.toLowerCase();
+
+            // 1) Lọc theo text
             final filtered = q.isEmpty
                 ? books
                 : books.where((b) {
@@ -31,22 +35,27 @@ class DiscoverPage extends ConsumerWidget {
                     return title.contains(q) || author.contains(q);
                   }).toList();
 
-            final cat = AppConsts.categories[catIdx];
-            final byCategory = filtered.where((b) => b.genres == cat).toList();
+            // Chuẩn hoá chuỗi để so sánh: bỏ khoảng trắng thừa, ký tự đặc biệt, về lowercase
+            String _norm(String s) =>
+                s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
 
-            if (filtered.isEmpty) {
-              return const Center(child: Text('Không tìm thấy kết quả'));
-            }
+            final selectedCat = AppConsts.categories[catIdx];
+            final display = filtered.where((b) {
+              // Nếu muốn "Hot" = hiển thị tất cả:
+              if (_norm(selectedCat) == _norm('Hot')) return true;
+
+              final cats = (b.genres ?? []).map(_norm).toList();
+              return cats.contains(_norm(selectedCat));
+            }).toList();
 
             return CustomScrollView(
               slivers: [
-                // Search + gift icon
+                // --- Search + gift: giữ nguyên ---
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: Row(
                       children: [
-                        // pill
                         Expanded(
                           child: SearchPill(
                             hint: "Claimed by my Brother's Best Frie…",
@@ -64,19 +73,15 @@ class DiscoverPage extends ConsumerWidget {
                           onPressed: () {},
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           constraints: const BoxConstraints(minWidth: 40),
-                          icon: Image.asset(
-                            'assets/images/box_gift.png',
-                            width: 24,
-                            height: 24,
-                            fit: BoxFit.contain,
-                          ),
+                          icon: Assets.images.boxGift.image(
+                              width: 24, height: 24, fit: BoxFit.contain),
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // Categories
+                // --- Categories
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 42,
@@ -84,7 +89,8 @@ class DiscoverPage extends ConsumerWidget {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
-                        children: List.generate(AppConsts.categories.length, (i) {
+                        children:
+                            List.generate(AppConsts.categories.length, (i) {
                           final selected = i == catIdx;
                           return Padding(
                             padding: const EdgeInsets.only(right: 16),
@@ -93,28 +99,12 @@ class DiscoverPage extends ConsumerWidget {
                               onTap: () => ref
                                   .read(discoverCategoryIndexProvider.notifier)
                                   .state = i,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    AppConsts.categories[i],
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: selected
-                                          ? ColorName.hotColor
-                                          : Colors.white.withOpacity(0.8),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    height: 3,
-                                    width: selected ? 18 : 0,
-                                    decoration: BoxDecoration(
-                                      color: ColorName.hotColor,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ],
+                              child: GradientCategoryTab(
+                                label: AppConsts.categories[i],
+                                selected: selected,
+                                fontSize: 16,
+                                underlineExtra: 14,
+                                underlineHeight: 2,
                               ),
                             ),
                           );
@@ -126,31 +116,32 @@ class DiscoverPage extends ConsumerWidget {
 
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-                // Grid sách
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      // card cover (3:4) + text → khoảng 1/0.68
-                      mainAxisExtent: 320,
+                // --- Nếu có sách: render Grid ---
+                if (display.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 0,      // khoảng cách giữa hàng
+                        crossAxisSpacing: 16,     // khoảng cách giữa cột
+                        childAspectRatio: 0.71,   // tỉ lệ width/height cho mỗi BookTile
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) => BookTile(book: display[index]),
+                        childCount: display.length,
+                      ),
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final b = filtered[index];
-                        return BookTile(
-                          book: b,
-                          // onTap: () {
-                          // },
-                        );
-                      },
-                      childCount: filtered.length,
+                  )
+
+                // --- Nếu không có sách: show placeholder trong scroll ---
+                else
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text('Không tìm thấy kết quả'),
                     ),
                   ),
-                ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
