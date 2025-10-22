@@ -1,16 +1,10 @@
-# story_reading_app
+# story_reader_manifest_demo (v2)
 
-A new Flutter project.
+- Uses a build-time `assets/books_manifest.json`
+- Generator ensures RELATIVE asset keys like `assets/books/...`
+- Tapping a chapter now shows a SnackBar and error page if the asset path is wrong
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Run
+dart run tool/gen_books_manifest.dart
+flutter pub get
+flutter run

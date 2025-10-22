@@ -1,0 +1,72 @@
+[
+  {
+    "id": "a",
+    "title": "Book A",
+    "author": "Alice",
+    "coverAsset": "assets/books/a/cover.png",
+    "genres": [
+      "Hot", "Fantasy"
+    ],
+    "chapterCount": 10
+  },
+  {
+    "id": "b",
+    "title": "Book B",
+    "author": "Bob",
+    "coverAsset": "assets/books/b/cover.png",
+    "genres": [
+      "Hot", "Werewolf"
+    ],
+    "chapterCount": 8
+  },
+  {
+    "id": "c",
+    "title": "Book C",
+    "author": "Bob",
+    "coverAsset": "assets/books/c/cover.png",
+    "genres": [
+      "New", "Romance"
+    ],
+    "chapterCount": 8
+  },
+  {
+    "id": "d",
+    "title": "Book D",
+    "author": "Bob",
+    "coverAsset": "assets/books/d/cover.png",
+    "genres": [
+      "fantasy"
+    ],
+    "chapterCount": 8
+  },
+  {
+    "id": "e",
+    "title": "Book E",
+    "author": "Bob",
+    "coverAsset": "assets/books/e/cover.png",
+    "genres": [
+      "Wuxia"
+    ],
+    "chapterCount": 8
+  },
+  {
+    "id": "book_a",
+    "title": "book_a",
+    "author": "Bob",
+    "coverAsset": null,
+    "genres": [
+      "Werewolf"
+    ],
+    "chapterCount": 8
+  },
+  {
+    "id": "book_b",
+    "title": "book_b",
+    "author": "Bob",
+    "coverAsset": null,
+    "genres": [
+      "Sci-fi Ro"
+    ],
+    "chapterCount": 8
+  }
+]
