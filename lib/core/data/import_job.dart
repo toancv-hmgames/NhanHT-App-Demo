@@ -50,9 +50,18 @@ class ImportJob {
           'genres': (b['genres'] as List?)?.join(',') ?? '',
           'chapterCount': realCount,
           'updatedAt': DateTime.now().millisecondsSinceEpoch,
+          'summary': b['summary'],
+          'rating': b['rating'],
         }, conflictAlgorithm: ConflictAlgorithm.replace);
 
         batch.insert(LocalDb.tableSearch, {
+          'bookId': id,
+          'title': b['title'],
+          'author': b['author'],
+          'genres': (b['genres'] as List?)?.join(',') ?? '',
+        });
+
+        batch.insert(LocalDb.tableChapter, {
           'bookId': id,
           'title': b['title'],
           'author': b['author'],
