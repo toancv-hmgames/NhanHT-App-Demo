@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:story_reading_app/gen/colors.gen.dart';
 
 class GradientCategoryTab extends StatelessWidget {
   final String label;
@@ -19,11 +20,11 @@ class GradientCategoryTab extends StatelessWidget {
     this.underlineExtra = 8,      // tràn nhẹ 2–4px mỗi bên
     this.underlineHeight = 2,     // mỏng 2px
     this.gradient = const LinearGradient(
-      colors: [Color(0xFFF32222), Color(0xFFF38422)],
+      colors: [ColorName.selectCategory1Color, ColorName.selectCategory2Color],
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
     ),
-    this.unselectedColor = const Color(0xFFFFFFFF),
+    this.unselectedColor = Colors.white,
   });
 
   @override

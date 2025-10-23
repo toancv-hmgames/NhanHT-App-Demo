@@ -3,4 +3,9 @@
     <color name="defaultIcon">#6A6A8B</color>
     <color name="chooseIcon">#FEBCC6</color>
     <color name="hotColor">#FF6A00</color>
+    <color name="bookTitleColor">#FFF5F5FA</color>
+    <color name="bookAuthorColor">#FFEBEBF5</color>
+    <color name="searchFieldColor">#FF2B2B68</color>
+    <color name="selectCategory1Color">#FFF32222</color>
+    <color name="selectCategory2Color">#FFF38422</color>
 </resources>

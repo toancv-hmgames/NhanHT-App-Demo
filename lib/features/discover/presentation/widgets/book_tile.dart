@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:story_reading_app/gen/colors.gen.dart';
 
 import '../../../../core/domain/entities/book.dart';
 
@@ -15,14 +16,14 @@ class BookTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final titleStyle = const TextStyle(
-      color: Color(0xFFF5F5FA),
+      color: ColorName.bookTitleColor,
       fontWeight: FontWeight.w500,
       fontSize: 16,
       height: 1.0,
       letterSpacing: 0,
     );
     final authorStyle = TextStyle(
-      color: Color(0xFFEBEBF5),
+      color: ColorName.bookAuthorColor,
       fontSize: 12,
       fontWeight: FontWeight.w400,
       height: 1.0,
@@ -58,13 +59,13 @@ class BookTile extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            SizedBox(height: w * 0.35, child: _Meta(titleStyle, authorStyle)),
+            SizedBox(height: w * 0.35, child: _meta(titleStyle, authorStyle)),
           ],
         );
       }),
     );
   }
-  Widget _Meta(TextStyle title, TextStyle author) {
+  Widget _meta(TextStyle title, TextStyle author) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

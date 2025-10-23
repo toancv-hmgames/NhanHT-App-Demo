@@ -37,7 +37,7 @@ class DiscoverPage extends ConsumerWidget {
 
             // Chuẩn hoá chuỗi để so sánh: bỏ khoảng trắng thừa, ký tự đặc biệt, về lowercase
             String _norm(String s) =>
-                s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+                s.toLowerCase().replaceAll(RegExp(AppConsts.normalValue), ' ').trim();
 
             final selectedCat = AppConsts.categories[catIdx];
             final display = filtered.where((b) {
@@ -139,7 +139,7 @@ class DiscoverPage extends ConsumerWidget {
                   const SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
-                      child: Text('Không tìm thấy kết quả'),
+                      child: Text('No results found!'),
                     ),
                   ),
 
