@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../domain/usecases.dart';
+import '../../../core/domain/usecases.dart';
 import 'discover_state.dart';
 
 class DiscoverVM extends StateNotifier<DiscoverState> {

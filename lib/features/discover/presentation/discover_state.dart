@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../domain/entities.dart';
+import '../../../core/domain/entities/book.dart';
 
 class DiscoverState {
   final AsyncValue<List<Book>> books;

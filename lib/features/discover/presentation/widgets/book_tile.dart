@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:story_reading_app/gen/colors.gen.dart';
 
-import '../../domain/entities.dart';
+import '../../../../core/domain/entities/book.dart';
 
 class BookTile extends StatelessWidget {
   final Book book;

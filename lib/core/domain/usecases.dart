@@ -1,5 +1,5 @@
-import 'entities.dart';
-import 'repositories.dart';
+import 'entities/book.dart';
+import 'repositories/repositories.dart';
 
 class GetBooks {
   final CatalogRepository repo;
