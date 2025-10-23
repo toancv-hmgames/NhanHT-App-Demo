@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class LocalDb {
   static const _dbName = 'novel_reader.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   static const tableBook = 'book';
   static const tableSearch = 'search_index';
@@ -23,6 +23,8 @@ class LocalDb {
             author TEXT,
             coverAsset TEXT,
             genres TEXT,
+            chapterCount INTEGER,
+            updatedAt INTEGER
           )
         ''');
         await db.execute('''

@@ -16,6 +16,12 @@ class ColorName {
   /// Color: #0F0F29
   static const Color background = Color(0xFF0F0F29);
 
+  /// Color: #FFEBEBF5
+  static const Color bookAuthorColor = Color(0xFFEBEBF5);
+
+  /// Color: #FFF5F5FA
+  static const Color bookTitleColor = Color(0xFFF5F5FA);
+
   /// Color: #FEBCC6
   static const Color chooseIcon = Color(0xFFFEBCC6);
 
@@ -24,4 +30,13 @@ class ColorName {
 
   /// Color: #FF6A00
   static const Color hotColor = Color(0xFFFF6A00);
+
+  /// Color: #FF2B2B68
+  static const Color searchFieldColor = Color(0xFF2B2B68);
+
+  /// Color: #FFF32222
+  static const Color selectCategory1Color = Color(0xFFF32222);
+
+  /// Color: #FFF38422
+  static const Color selectCategory2Color = Color(0xFFF38422);
 }

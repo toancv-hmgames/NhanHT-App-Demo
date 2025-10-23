@@ -62,8 +62,18 @@ class $AssetsIconsGen {
   /// File path: assets/icons/rewards.svg
   String get rewards => 'assets/icons/rewards.svg';
 
+  /// File path: assets/icons/search.svg
+  String get search => 'assets/icons/search.svg';
+
   /// List of all assets
-  List<String> get values => [discovery, giftIcon, library, profile, rewards];
+  List<String> get values => [
+    discovery,
+    giftIcon,
+    library,
+    profile,
+    rewards,
+    search,
+  ];
 }
 
 class $AssetsImagesGen {
@@ -109,6 +119,13 @@ class $AssetsBooksBookAGen {
   /// Directory path: assets/books/book_a/chapters
   $AssetsBooksBookAChaptersGen get chapters =>
       const $AssetsBooksBookAChaptersGen();
+
+  /// File path: assets/books/book_a/cover.png
+  AssetGenImage get cover =>
+      const AssetGenImage('assets/books/book_a/cover.png');
+
+  /// List of all assets
+  List<AssetGenImage> get values => [cover];
 }
 
 class $AssetsBooksBookBGen {
@@ -117,6 +134,13 @@ class $AssetsBooksBookBGen {
   /// Directory path: assets/books/book_b/chapters
   $AssetsBooksBookBChaptersGen get chapters =>
       const $AssetsBooksBookBChaptersGen();
+
+  /// File path: assets/books/book_b/cover.png
+  AssetGenImage get cover =>
+      const AssetGenImage('assets/books/book_b/cover.png');
+
+  /// List of all assets
+  List<AssetGenImage> get values => [cover];
 }
 
 class $AssetsBooksCGen {

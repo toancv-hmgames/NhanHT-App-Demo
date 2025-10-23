@@ -53,7 +53,7 @@
     "id": "book_a",
     "title": "book_a",
     "author": "Bob",
-    "coverAsset": null,
+    "coverAsset": "assets/books/book_a/cover.png",
     "genres": [
       "Werewolf"
     ],
@@ -63,7 +63,7 @@
     "id": "book_b",
     "title": "book_b",
     "author": "Bob",
-    "coverAsset": null,
+    "coverAsset": "assets/books/book_b/cover.png",
     "genres": [
       "Sci-fi Ro"
     ],
