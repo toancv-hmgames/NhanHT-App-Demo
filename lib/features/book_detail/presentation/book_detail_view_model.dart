@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../../../core/domain/usecases.dart';
-import 'discover_state.dart';
+import 'book_detail_state.dart';
 
-class DiscoverVM extends StateNotifier<DiscoverState> {
+class BookDetailVM extends StateNotifier<BookDetailState> {
   final GetBooks _getBooks;
 
-  DiscoverVM(this._getBooks) : super(const DiscoverState()) {
+  BookDetailVM(this._getBooks) : super(const BookDetailState()) {
     loadBooks();
   }
 
