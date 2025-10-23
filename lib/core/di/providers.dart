@@ -9,6 +9,10 @@ import 'package:sqflite/sqflite.dart';
 import '../../features/discover/presentation/discover_state.dart';
 import '../../features/discover/presentation/discover_view_model.dart';
 
+// Book Detail (presentation)
+import '../../features/book_detail/presentation/book_detail_state.dart';
+import '../../features/book_detail/presentation/book_detail_view_model.dart';
+
 // Core data
 import '../data/catalog_repository_impl.dart';
 import '../data/data_sources/assets_data_source.dart';
@@ -123,35 +127,11 @@ StateProvider.autoDispose<int>((_) => 0);
 /// Book Detail data (dùng chung repo)
 /// -------------------------------
 
-/// Lấy Book theo id (autoDispose để tránh giữ cache khi rời màn)
-final bookProvider =
-FutureProvider.autoDispose.family<Book, String>((ref, bookId) async {
-  final r = ref.read(catalogRepoProvider);
-  return r.getBookById(bookId);
-});
-
-/// Lấy danh sách chương theo bookId (autoDispose)
-final chapterListProvider = FutureProvider.autoDispose
-    .family<List<ChapterSummary>, String>((ref, bookId) async {
-  final r = ref.read(catalogRepoProvider);
-  return r.listChapters(bookId);
-});
-
-/// (Tuỳ chọn) Provider tổ hợp cho UI Book Detail: gộp 2 nhánh lại một nơi.
-/// Nếu bạn muốn UI chỉ watch 1 provider, có thể bật đoạn dưới và dùng:
-/// final state = ref.watch(bookDetailProvider(bookId));
-
-
-class BookDetailState {
-  final AsyncValue<Book> book;
-  final AsyncValue<List<ChapterSummary>> chapters;
-  const BookDetailState({required this.book, required this.chapters});
-}
-
-final bookDetailProvider =
-    Provider.autoDispose.family<BookDetailState, String>((ref, bookId) {
-  final b = ref.watch(bookProvider(bookId));
-  final c = ref.watch(chapterListProvider(bookId));
-  return BookDetailState(book: b, chapters: c);
+final bookDetailVMProvider =
+StateNotifierProvider.autoDispose.family<BookDetailVM, BookDetailState, String>((ref, bookId) {
+  final repo = ref.read(catalogRepoProvider);
+  final vm = BookDetailVM(repo);
+  vm.load(bookId);   // tải 1 lần khi tạo VM
+  return vm;
 });
 
