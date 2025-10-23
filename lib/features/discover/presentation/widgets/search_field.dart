@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:story_reading_app/gen/colors.gen.dart';
 
 import '../../../../gen/assets.gen.dart';
 
@@ -10,6 +11,7 @@ class SearchPill extends StatefulWidget {
   final VoidCallback onClear;
 
   const SearchPill({
+    super.key,
     required this.hint,
     required this.initial,
     required this.onChanged,
@@ -45,7 +47,7 @@ class SearchPillState extends State<SearchPill> {
 
   @override
   Widget build(BuildContext context) {
-    final fill = Color(0xFF2B2B68);
+    final fill = ColorName.searchFieldColor;
     return Container(
       height: 40,
       decoration: BoxDecoration(
