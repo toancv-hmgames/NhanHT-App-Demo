@@ -1,9 +1,10 @@
+// lib/features/discover/data/data_sources/local_db.dart
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class LocalDb {
   static const _dbName = 'novel_reader.db';
-  static const _dbVersion = 3;
+  static const _dbVersion = 1;
 
   static const tableBook = 'book';
   static const tableSearch = 'search_index';
@@ -16,6 +17,9 @@ class LocalDb {
     return openDatabase(
       path,
       version: _dbVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE $tableBook(
@@ -24,12 +28,13 @@ class LocalDb {
             author TEXT,
             coverAsset TEXT,
             genres TEXT,
-            chapterCount INTEGER,
+            chapterCount INTEGER NOT NULL,
             updatedAt INTEGER,
             summary TEXT,
-            rating REAL,
-          )
+            rating REAL
+          );
         ''');
+
         await db.execute('''
           CREATE TABLE $tableSearch(
             bookId TEXT PRIMARY KEY,
@@ -38,20 +43,28 @@ class LocalDb {
             genres TEXT
           );
         ''');
-        await db.execute(
-          'CREATE TABLE $tableMeta(key TEXT PRIMARY KEY, value TEXT)');
+
+        await db.execute('CREATE TABLE $tableMeta(key TEXT PRIMARY KEY, value TEXT)');
+
         await db.execute('''
           CREATE TABLE $tableChapter(
             bookId TEXT NOT NULL,
             idx INTEGER NOT NULL,
-            id TEXT NOT NULL,
             title TEXT,
-            path TEXT NOT NULL,
+            assetPath TEXT NOT NULL,
             length INTEGER,
-            PRIMARY KEY(book_id, idx)
+            PRIMARY KEY(bookId, idx),
+            FOREIGN KEY(bookId) REFERENCES $tableBook(id) ON DELETE CASCADE
           );
-          ''');
-        await db.execute('CREATE INDEX IF NOT EXISTS idx_chapters_book ON chapters(book_id);');
+        ''');
+
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_chapter_book ON $tableChapter(bookId);');
+      },
+      onUpgrade: (db, oldV, newV) async {
+        if (oldV < 2) {
+          await db.execute('ALTER TABLE $tableBook ADD COLUMN summary TEXT;');
+          await db.execute('ALTER TABLE $tableBook ADD COLUMN rating REAL;');
+        }
       },
     );
   }

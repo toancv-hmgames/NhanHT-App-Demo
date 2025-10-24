@@ -4,6 +4,7 @@ import 'package:story_reading_app/gen/colors.gen.dart';
 import '../../../core/di/providers.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../share/const_value.dart';
+import '../../book_detail/presentation/book_detail_page.dart';
 import 'widgets/book_tile.dart';
 import 'widgets/gradient_category_tab.dart';
 import 'widgets/search_field.dart';
@@ -44,9 +45,21 @@ class DiscoverPage extends ConsumerWidget {
               // Nếu muốn "Hot" = hiển thị tất cả:
               if (_norm(selectedCat) == _norm('Hot')) return true;
 
-              final cats = (b.genres ?? []).map(_norm).toList();
+              final cats = (b.genres).map(_norm).toList();
               return cats.contains(_norm(selectedCat));
             }).toList();
+
+            final screenWidth = MediaQuery.sizeOf(context).width;
+
+            // 1. tính width của mỗi ô
+            final tileWidth = (screenWidth - horizontalPadding * 2 - crossAxisSpacing) / 2;
+
+            final tileHeight = tileWidth +
+                coverGap +
+                titleFontSize * lineHeight * titleLines +
+                4 + // khoảng giữa title và author
+                authorFontSize * lineHeight * authorLines +
+                spacingBelow;
 
             return CustomScrollView(
               slivers: [
@@ -121,14 +134,20 @@ class DiscoverPage extends ConsumerWidget {
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        mainAxisSpacing: 0,      // khoảng cách giữa hàng
-                        crossAxisSpacing: 16,     // khoảng cách giữa cột
-                        childAspectRatio: 0.71,   // tỉ lệ width/height cho mỗi BookTile
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 0, // khoảng cách giữa các hàng
+                        mainAxisExtent: tileHeight,
                       ),
                       delegate: SliverChildBuilderDelegate(
-                            (context, index) => BookTile(book: display[index]),
+                            (context, index) => BookTile(book: display[index], onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => BookDetailPage(bookId: display[index].id),
+                                ),
+                              );
+                            },),
                         childCount: display.length,
                       ),
                     ),

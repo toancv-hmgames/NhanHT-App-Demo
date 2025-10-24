@@ -1,72 +1,72 @@
 [
   {
     "id": "a",
-    "title": "Book A",
-    "author": "Alice",
+    "title": "The Lost Kingdom",
+    "author": "Alice Monroe",
     "coverAsset": "assets/books/a/cover.png",
-    "genres": [
-      "Hot", "Fantasy"
-    ],
-    "chapterCount": 10
+    "genres": ["Fantasy", "Adventure", "Romance"],
+    "chapterCount": 12,
+    "rating": 4.6,
+    "summary": "A princess discovers her forgotten powers and must unite rival kingdoms to prevent a world-ending war."
   },
   {
     "id": "b",
-    "title": "Book B",
-    "author": "Bob",
+    "title": "Moonlight Curse",
+    "author": "Robert Hill",
     "coverAsset": "assets/books/b/cover.png",
-    "genres": [
-      "Hot", "Werewolf"
-    ],
-    "chapterCount": 8
+    "genres": ["Werewolf", "Drama", "Mystery"],
+    "chapterCount": 10,
+    "rating": 4.4,
+    "summary": "A young alpha struggles between love and loyalty as the ancient curse of his pack begins to awaken."
   },
   {
     "id": "c",
-    "title": "Book C",
-    "author": "Bob",
+    "title": "Love Across Time",
+    "author": "Sophie Turner",
     "coverAsset": "assets/books/c/cover.png",
-    "genres": [
-      "New", "Romance"
-    ],
-    "chapterCount": 8
+    "genres": ["Romance", "Fantasy", "Drama"],
+    "chapterCount": 14,
+    "rating": 4.8,
+    "summary": "A modern girl finds herself transported into a century-old novel — and falls in love with its tragic hero."
   },
   {
     "id": "d",
-    "title": "Book D",
-    "author": "Bob",
+    "title": "Dragon's Oath",
+    "author": "Marcus Lee",
     "coverAsset": "assets/books/d/cover.png",
-    "genres": [
-      "fantasy"
-    ],
-    "chapterCount": 8
+    "genres": ["Fantasy", "Action", "Epic"],
+    "chapterCount": 9,
+    "rating": 4.7,
+    "summary": "A former knight bonds with a dying dragon to reclaim his lost honor and face the empire that betrayed him."
   },
   {
     "id": "e",
-    "title": "Book E",
-    "author": "Bob",
+    "title": "Sword of Silence",
+    "author": "Ling Zhao",
     "coverAsset": "assets/books/e/cover.png",
-    "genres": [
-      "Wuxia"
-    ],
-    "chapterCount": 8
+    "genres": ["Wuxia", "Martial Arts", "Drama", "Historical"],
+    "chapterCount": 11,
+    "rating": 4.5,
+    "summary": "An orphaned swordsman walks the thin line between vengeance and redemption in a world of corrupt clans."
   },
   {
     "id": "book_a",
-    "title": "book_a",
-    "author": "Bob",
+    "title": "My Neighbor the Vampire",
+    "author": "Hana Kim",
     "coverAsset": "assets/books/book_a/cover.png",
-    "genres": [
-      "Werewolf"
-    ],
-    "chapterCount": 8
+    "genres": ["Paranormal", "Romance", "Comedy"],
+    "chapterCount": 8,
+    "rating": 4.2,
+    "summary": "When a shy college girl discovers her new neighbor never shows up in daylight, her life turns upside down."
   },
   {
     "id": "book_b",
-    "title": "book_b",
-    "author": "Bob",
+    "title": "Echoes of the Future",
+    "author": "James Carter",
     "coverAsset": "assets/books/book_b/cover.png",
-    "genres": [
-      "Sci-fi Ro"
-    ],
-    "chapterCount": 8
+    "genres": ["Sci-fi", "Thriller", "Fiction"],
+    "chapterCount": 10,
+    "rating": 4.3,
+    "summary": "In a city where memories can be traded, a detective hunts for the truth behind a forbidden technology."
   }
 ]
