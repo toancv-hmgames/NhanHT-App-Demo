@@ -24,13 +24,19 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
   // === Runtime flags / state machine ===
   bool _isRestoringScroll =
-      false; // đang cố khôi phục offset đã lưu (chỉ dùng trong init ban đầu)
+  false; // đang cố khôi phục offset đã lưu (chỉ dùng trong init ban đầu)
   bool _suppressActiveDetect =
-      false; // tạm thời KHÔNG cho _updateActiveChapterFromScroll() đụng vào activeChapterIdx
+  false; // tạm thời KHÔNG cho _updateActiveChapterFromScroll() đụng vào activeChapterIdx
   bool _loadingNext = false;
   bool _loadingPrev = false;
 
+  // Khi prepend chương ở đầu danh sách, ta cần giữ nguyên viewport
   _PrependAdjustInfo? _pendingPrependAdjust;
+
+  // Ngăn loadPrev quá sớm (tránh vụ "vừa vào chap N mà AppBar nhảy về chap N-1")
+  bool _allowLoadPrev = false;
+
+  int? _pendingJumpChapterIdx;
 
   ReaderVM({
     required ReadingRepository repo,
@@ -69,6 +75,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
       //    Trong giai đoạn này ta CHƯA muốn active detection đè lại.
       _suppressActiveDetect = true;
       _isRestoringScroll = true;
+      _allowLoadPrev = false;
 
       state = state.copyWith(
         activeChapterIdx: startChapterIdx,
@@ -118,13 +125,14 @@ class ReaderVM extends StateNotifier<ReaderState> {
       );
       _isRestoringScroll = false;
       _suppressActiveDetect = false;
+      _allowLoadPrev = true; // cho phép hành vi bình thường nếu init fail
     }
   }
 
   Future<ReaderChapterItem> _loadChapterItem(
-    String bookId,
-    int chapterIdx,
-  ) async {
+      String bookId,
+      int chapterIdx,
+      ) async {
     final meta = _allChapters[chapterIdx];
     final content = await _repo.loadChapterText(bookId, chapterIdx);
     return ReaderChapterItem(
@@ -145,6 +153,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
   // Sau khi done:
   //   - tắt _isRestoringScroll
   //   - tắt _suppressActiveDetect (cho phép AppBar đổi theo cuộn bình thường)
+  //   - thiết lập _allowLoadPrev dựa trên vị trí thực tế
   //
   void tryRestoreScrollIfNeeded() {
     if (!_isRestoringScroll) return;
@@ -153,7 +162,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
     final activeChapIdx = state.activeChapterIdx;
     final idxInList = state.loadedChapters.indexWhere(
-      (c) => c.chapterIdx == activeChapIdx,
+          (c) => c.chapterIdx == activeChapIdx,
     );
     if (idxInList < 0) return;
 
@@ -163,16 +172,21 @@ class ReaderVM extends StateNotifier<ReaderState> {
     final prefixHeight = _prefixHeight(idxInList);
     final targetOffset = prefixHeight + state.savedOffsetInActiveChapter;
 
+    // Nhảy đến đúng pixel đã lưu
     scrollController.jumpTo(targetOffset);
 
     // Done restore. Từ giờ AppBar có thể cập nhật bình thường.
     _isRestoringScroll = false;
     _suppressActiveDetect = false;
 
-    // 👇 thêm dòng này: báo cho UI biết đã ổn, có thể render nội dung thật
+    // Cho phép loadPrev ngay nếu người dùng thực tế đang ở sâu trong chương
+    // (ví dụ targetOffset > 200)
+    _allowLoadPrev = targetOffset > 200;
+
+    // Báo cho UI biết: đã khôi phục xong, có thể render mượt
     state = state.copyWith(
       isRestoring: false,
-      initLoading: false, // chắc chắn initLoading xong ở thời điểm này
+      initLoading: false,
     );
   }
 
@@ -193,8 +207,10 @@ class ReaderVM extends StateNotifier<ReaderState> {
     return sum;
   }
 
-  Future<void> _scrollToLoadedListIndex(int listIndex,
-      {double insideOffset = 0.0}) async {
+  Future<void> _scrollToLoadedListIndex(
+      int listIndex, {
+        double insideOffset = 0.0,
+      }) async {
     if (!scrollController.hasClients) return;
     if (listIndex < 0 || listIndex >= state.loadedChapters.length) return;
 
@@ -203,7 +219,6 @@ class ReaderVM extends StateNotifier<ReaderState> {
       final chapIdxBefore = state.loadedChapters[i].chapterIdx;
       targetOffset += _chapterHeights[chapIdxBefore] ?? 0.0;
     }
-
     targetOffset += insideOffset;
 
     await scrollController.animateTo(
@@ -221,17 +236,12 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
     state = state.copyWith(themeMode: nextMode);
 
-    // (tuỳ chọn) lưu xuống DB/session để nhớ lựa chọn
-    // ví dụ: await _repo.saveReaderPrefs(bookId, nextMode);
+    // (tương lai) có thể lưu xuống DB để nhớ theme người dùng
   }
 
-  /// Nhảy đến chương có chỉ số 'globalChapterIdx' trong toàn bộ truyện
-  /// (tức là _allChapters[globalChapterIdx]).
-  ///
-  /// - Nếu chương đó đã tồn tại trong state.loadedChapters => tính offset và scroll tới nó.
-  /// - Nếu chưa load => chỉ cập nhật state.activeChapterIdx / activeChapterTitle
-  ///   để AppBar đổi ngay (tạm thời), nội dung thật sẽ load khi user cuộn/tiếp tục.
-  ///
+  /// User bấm "Go to chapter X" trong side panel nhanh:
+  /// - Nếu chương đã có trong loadedChapters => scroll tới nó.
+  /// - Nếu chưa load => chỉ cập nhật tiêu đề AppBar tạm thời.
   Future<void> jumpToChapterByGlobalIndex(int globalChapterIdx) async {
     if (globalChapterIdx < 0 || globalChapterIdx >= _allChapters.length) {
       return;
@@ -241,7 +251,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
     final pickedTitle = meta.title ?? '';
 
     final listIndex = state.loadedChapters.indexWhere(
-      (it) => it.chapterIdx == globalChapterIdx,
+          (it) => it.chapterIdx == globalChapterIdx,
     );
 
     if (listIndex == -1) {
@@ -273,13 +283,13 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
     final bookId = state.bookId;
 
-    // Đây KHÔNG phải restore session cũ -> tắt restore.
     _isRestoringScroll = false;
-
-    // Trong lúc rebuild list mới, tắt active-detect để tránh AppBar nhảy loạn.
     _suppressActiveDetect = true;
 
-    // Reset toàn bộ bối cảnh scroll/measure trước đó
+    _allowLoadPrev = false;
+    // (bỏ _canLoadPrevDynamically hoàn toàn, chúng ta không dùng nữa)
+
+    // reset bối cảnh cũ
     _chapterHeights.clear();
     _pendingPrependAdjust = null;
     _loadingPrev = false;
@@ -287,7 +297,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
     final immediateTitle = _allChapters[chapterIdx].title ?? '';
 
-    // phase 1: AppBar đổi ngay, body tạm loading
+    // phase 1: cập nhật state tối thiểu để AppBar đổi ngay
     state = state.copyWith(
       activeChapterIdx: chapterIdx,
       activeChapterTitle: immediateTitle,
@@ -300,25 +310,28 @@ class ReaderVM extends StateNotifier<ReaderState> {
     );
 
     try {
-      // Load chương hiện tại
-      final centerChapter = await _loadChapterItem(bookId, chapterIdx);
+      // load prev / current / next
+      ReaderChapterItem? prevChapter;
+      if (chapterIdx - 1 >= 0) {
+        prevChapter = await _loadChapterItem(bookId, chapterIdx - 1);
+      }
+      final currentChapter = await _loadChapterItem(bookId, chapterIdx);
 
-      // Preload chương sau (nếu có)
-      final List<ReaderChapterItem> newList = [
-        centerChapter,
-      ];
-
-      final nextIdx = chapterIdx + 1;
-      if (nextIdx < _allChapters.length) {
-        final nextChap = await _loadChapterItem(bookId, nextIdx);
-        newList.add(nextChap);
+      ReaderChapterItem? nextChapter;
+      if (chapterIdx + 1 < _allChapters.length) {
+        nextChapter = await _loadChapterItem(bookId, chapterIdx + 1);
       }
 
-      // phase 2: gán list mới vào state
+      final List<ReaderChapterItem> newList = [
+        if (prevChapter != null) prevChapter,
+        currentChapter,
+        if (nextChapter != null) nextChapter,
+      ];
+
       state = state.copyWith(
         loadedChapters: newList,
         activeChapterIdx: chapterIdx,
-        activeChapterTitle: centerChapter.title,
+        activeChapterTitle: currentChapter.title,
         savedOffsetInActiveChapter: 0.0,
         initLoading: false,
         isLoadingMorePrev: false,
@@ -326,26 +339,28 @@ class ReaderVM extends StateNotifier<ReaderState> {
         error: null,
       );
 
-      // Đảm bảo scroll về đầu chương mới
+      // đánh dấu rằng sau khi layout đo xong height của các chương đứng trước,
+      // ta cần nhảy viewport đến đầu chapterIdx (currentChapter).
+      _pendingJumpChapterIdx = chapterIdx;
+
+      // lưu session: đang ở chapterIdx, offset = 0
+      await saveProgressNow();
+
+      // mở lại detect active sau frame đầu tiên
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (scrollController.hasClients) {
-          scrollController.jumpTo(0.0);
-        }
-        // Lúc này list ổn định, ta cho phép detect active theo cuộn trở lại.
         _suppressActiveDetect = false;
       });
-
-      // Ghi session mới (chapterIdx + offset=0)
-      await saveProgressNow();
     } catch (e) {
       state = state.copyWith(
         initLoading: false,
         error: e,
       );
-      // Nếu fail load, cứ cho phép detect lại để tránh khóa vĩnh viễn
       _suppressActiveDetect = false;
+      // fallback: cho phép loadPrev bình thường nếu fail
+      _allowLoadPrev = false;
     }
   }
+
 
   double? _computeOffsetInsideActiveChapter() {
     if (!scrollController.hasClients) return null;
@@ -396,68 +411,104 @@ class ReaderVM extends StateNotifier<ReaderState> {
     final offsetPx = scrollController.offset;
 
     double runningTop = 0;
-    int? foundChapterIdx;
-    String? foundTitle;
+    int? bestChapterIdx;
+    String? bestTitle;
 
     for (final item in state.loadedChapters) {
       final chIdx = item.chapterIdx;
       final h = _chapterHeights[chIdx];
 
       if (h == null || h <= 0) {
-        // chiều cao chưa đo xong -> không kết luận sai
+        // height chưa đo xong => ta không thể xác định ranh giới kế tiếp,
+        // nhưng nếu đã có bestChapterIdx rồi thì giữ nguyên best và dừng vòng lặp.
         break;
       }
 
       final chapterTop = runningTop;
       final chapterBottom = runningTop + h;
 
+      // nếu offsetPx nằm TRONG chương này -> chọn chương này và kết thúc.
       if (offsetPx >= chapterTop && offsetPx < chapterBottom) {
-        foundChapterIdx = chIdx;
-        foundTitle = item.title;
+        bestChapterIdx = chIdx;
+        bestTitle = item.title;
         break;
+      }
+
+      // nếu offsetPx ở SAU chương này (tức là đã cuộn qua hết chương này),
+      // ta tạm thời coi chương này là best fallback.
+      if (offsetPx >= chapterBottom) {
+        bestChapterIdx = chIdx;
+        bestTitle = item.title;
       }
 
       runningTop += h;
     }
 
-    if (foundChapterIdx == null) {
-      // Không xác định rõ => giữ nguyên state hiện tại, KHÔNG fallback
+    if (bestChapterIdx == null) {
+      // Không xác định rõ => giữ nguyên, KHÔNG ép state
       return;
     }
 
-    if (foundChapterIdx == state.activeChapterIdx &&
-        foundTitle == state.activeChapterTitle) {
+    if (bestChapterIdx == state.activeChapterIdx &&
+        bestTitle == state.activeChapterTitle) {
       return;
     }
 
     state = state.copyWith(
-      activeChapterIdx: foundChapterIdx,
-      activeChapterTitle: foundTitle ?? state.activeChapterTitle,
-      // savedOffsetInActiveChapter sẽ cập nhật trong _scheduleSaveProgress
+      activeChapterIdx: bestChapterIdx,
+      activeChapterTitle: bestTitle ?? state.activeChapterTitle,
     );
   }
 
-  // -------- SCROLL LISTENER / INFINITE LOAD --------
 
+  // -------- SCROLL LISTENER / INFINITE LOAD --------
+  //
+  // Quy tắc mới:
+  // - Nếu _isRestoringScroll == true -> KHÔNG làm gì cả.
+  //   (không detect active, không load prev/next, không save progress)
+  //   Điều này ngăn việc tự ý prepend chap 1 và ghi session sai lúc vừa mở sách.
+  //
+  // - Chỉ loadPrev khi:
+  //   + người dùng đã cuộn xuống đủ sâu (_allowLoadPrev = true)
+  //   + rồi họ kéo ngược lên đầu (pixels < 100)
+  //
   void _onScroll() {
+    if (!scrollController.hasClients) return;
+
     final pos = scrollController.position;
 
-    // 1. Cập nhật chương active ngay lập tức để AppBar đổi tức thì (nếu được phép)
+    // Đang restore resume-session? Đừng đụng gì.
+    if (_isRestoringScroll) {
+      return;
+    }
+
     _updateActiveChapterFromScroll();
 
-    // 2. near bottom -> load next
+    // Load chương kế tiếp khi gần chạm đáy -> đọc xuôi
     if (pos.pixels >= pos.maxScrollExtent * 0.8) {
       _loadNextChapter();
     }
 
-    // 3. near top -> load prev
-    if (pos.pixels < 100) {
+    // Arm/disarm loadPrev cho đọc lùi xa hơn:
+    final offset = pos.pixels;
+
+    // Nếu user đã đọc sâu xuống (offset > 400), ta arm:
+    if (offset > 400) {
+      _allowLoadPrev = true;
+    }
+
+    // Nếu user quay lại sát đầu (< 20) và đã arm => prepend thêm 1 chương trước đó
+    if (_allowLoadPrev && offset < 20) {
+      _allowLoadPrev = false; // disarm cho vòng này
       _loadPrevChapter();
     }
 
-    // 4. debounce save progress xuống DB
     _scheduleSaveProgress();
   }
+
+
+
+
 
   Future<void> _loadNextChapter() async {
     if (_loadingNext) return;
@@ -505,7 +556,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
       // 1. Ghi lại offset hiện tại.
       final oldOffset =
-          scrollController.hasClients ? scrollController.position.pixels : 0.0;
+      scrollController.hasClients ? scrollController.position.pixels : 0.0;
 
       // 2. Cập nhật list: prepend prevChap
       final updated = [prevChap, ...state.loadedChapters];
@@ -614,7 +665,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
   // - Lưu height vào _chapterHeights
   // - Nếu đang restore initial scroll (_isRestoringScroll == true),
   //   thử nhảy đến offset đã lưu trong session.
-  // - Nếu vừa prepend thêm chương ở đầu, bù offset để không bị nhảy ngược.
+  // - Nếu vừa prepend thêm chương ở đầu, bù offset để không bị nhảy
   // - Cập nhật lại active chapter để AppBar sync với vị trí thật sau layout.
   //
   void reportChapterLayout({
@@ -626,10 +677,43 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
     final heightChanged = (oldHeight == null || oldHeight != heightPx);
 
-    // 1. Thử restore scroll (case mở từ BookDetail/resume)
+    // 1. Nếu đang restore session cũ (case mở từ BookDetail/resume)
     tryRestoreScrollIfNeeded();
 
-    // 2. Nếu vừa prepend một chương mới ở đầu list, phải bù offset để không nhảy
+    // 1b. Nếu vừa openChapterAsRoot(), ta có _pendingJumpChapterIdx.
+    //     Ta muốn nhảy viewport đến ĐẦU chương đã chọn (ví dụ chap6),
+    //     ngay cả khi danh sách hiện giờ là [5,6,7].
+    if (_pendingJumpChapterIdx != null &&
+        scrollController.hasClients &&
+        state.loadedChapters.isNotEmpty) {
+      final targetIdx = _pendingJumpChapterIdx!;
+      // xem targetIdx đang đứng ở vị trí thứ mấy trong loadedChapters
+      final listPos = state.loadedChapters.indexWhere(
+            (it) => it.chapterIdx == targetIdx,
+      );
+      if (listPos != -1) {
+        // kiểm tra đã đo đủ chiều cao của tất cả mục trước nó chưa
+        bool canJump = true;
+        double offsetBefore = 0;
+        for (int i = 0; i < listPos; i++) {
+          final beforeChapIdx = state.loadedChapters[i].chapterIdx;
+          final h = _chapterHeights[beforeChapIdx];
+          if (h == null || h <= 0) {
+            canJump = false;
+            break;
+          }
+          offsetBefore += h;
+        }
+        if (canJump) {
+          // Ta muốn đứng đầu chapter được chọn (offsetInChapter = 0)
+          scrollController.jumpTo(offsetBefore);
+          // sau khi nhảy thành công 1 lần thì clear
+          _pendingJumpChapterIdx = null;
+        }
+      }
+    }
+
+    // 2. Nếu vừa prepend 1 chương trước đó
     if (_pendingPrependAdjust != null && heightChanged) {
       final info = _pendingPrependAdjust!;
       if (info.newChapterIdx == chapterIdx && scrollController.hasClients) {
@@ -639,9 +723,10 @@ class ReaderVM extends StateNotifier<ReaderState> {
       }
     }
 
-    // 3. Sau khi có height ổn định hơn, update activeChapter theo offset hiện tại
+    // 3. Update activeChapter theo offset hiện tại
     _updateActiveChapterFromScroll();
   }
+
 
   @override
   void dispose() {
