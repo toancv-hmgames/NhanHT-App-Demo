@@ -14,6 +14,10 @@ import '../../features/book_detail/presentation/book_detail_state.dart';
 import '../../features/book_detail/presentation/book_detail_view_model.dart';
 
 // Core data
+import '../../features/reader/data/reading_repository_impl.dart';
+import '../../features/reader/domain/reading_repository.dart';
+import '../../features/reader/presentation/reader_state.dart';
+import '../../features/reader/presentation/reader_view_model.dart';
 import '../data/catalog_repository_impl.dart';
 import '../data/data_sources/assets_data_source.dart';
 import '../data/data_sources/local_db.dart';
@@ -52,7 +56,7 @@ final databaseProvider = FutureProvider<Database>((ref) async {
 
 /// Repo thực tế (Future): đợi DB sẵn sàng rồi mới tạo impl
 final _catalogRepoFutureProvider =
-FutureProvider<repo.CatalogRepository>((ref) async {
+    FutureProvider<repo.CatalogRepository>((ref) async {
   final db = await ref.watch(databaseProvider.future);
   return CatalogRepositoryImpl(db);
 });
@@ -87,7 +91,8 @@ class _DeferredCatalogRepository implements repo.CatalogRepository {
       (await _r).loadChapterText(bookId, chapterIdx);
 
   @override
-  Future<List<Book>> searchBooks({String? q, List<String> genres = const []}) async =>
+  Future<List<Book>> searchBooks(
+          {String? q, List<String> genres = const []}) async =>
       (await _r).searchBooks(q: q, genres: genres);
 }
 
@@ -112,26 +117,93 @@ final searchBooksProvider = Provider<uc.SearchBooks>((ref) {
 /// -------------------------------
 
 final discoverVMProvider =
-StateNotifierProvider<DiscoverVM, DiscoverState>((ref) {
+    StateNotifierProvider<DiscoverVM, DiscoverState>((ref) {
   final getBooks = ref.watch(getBooksProvider);
   return DiscoverVM(getBooks);
 });
 
 final discoverSearchQueryProvider =
-StateProvider.autoDispose<String>((ref) => '');
+    StateProvider.autoDispose<String>((ref) => '');
 
-final discoverCategoryIndexProvider =
-StateProvider.autoDispose<int>((_) => 0);
+final discoverCategoryIndexProvider = StateProvider.autoDispose<int>((_) => 0);
 
 /// -------------------------------
 /// Book Detail data (dùng chung repo)
 /// -------------------------------
 
-final bookDetailVMProvider =
-StateNotifierProvider.autoDispose.family<BookDetailVM, BookDetailState, String>((ref, bookId) {
+final bookDetailVMProvider = StateNotifierProvider.autoDispose
+    .family<BookDetailVM, BookDetailState, String>((ref, bookId) {
   final repo = ref.read(catalogRepoProvider);
   final vm = BookDetailVM(repo);
-  vm.load(bookId);   // tải 1 lần khi tạo VM
+  vm.load(bookId); // tải 1 lần khi tạo VM
   return vm;
 });
 
+/// -------------------------------
+/// Reader (VM cho màn đọc sách)
+/// -------------------------------
+
+final readerVMProvider = StateNotifierProvider.autoDispose
+    .family<ReaderVM, ReaderState, String>((ref, bookId) {
+  final readingRepo = ref.read(readingRepositoryProvider);
+
+  final vm = ReaderVM(
+    repo: readingRepo,
+    bookId: bookId,
+  );
+
+  // auto lưu khi provider dispose
+  ref.onDispose(() {
+    vm.saveProgress();
+  });
+
+  return vm;
+});
+
+// Danh sách metadata tất cả chapter của 1 cuốn sách,
+// dùng cho UI hiển thị list chapter trong side panel.
+// Trả về Future vì readingRepositoryProvider.listChapters() là async.
+final chaptersMetaProvider =
+    FutureProvider.family<List<ChapterSummary>, String>((ref, bookId) async {
+  final readingRepo = ref.watch(readingRepositoryProvider);
+  return await readingRepo.listChapters(bookId);
+});
+
+/// -------------------------------
+/// Reading Repository (đọc chương + progress)
+/// -------------------------------
+
+final _readingRepoFutureProvider =
+    FutureProvider<ReadingRepository>((ref) async {
+  final db = await ref.watch(databaseProvider.future);
+  final catalog = ref.watch(catalogRepoProvider);
+  return ReadingRepositoryImpl(db, catalog);
+});
+
+final readingRepositoryProvider = Provider<ReadingRepository>((ref) {
+  final future = ref.watch(_readingRepoFutureProvider.future);
+  return _DeferredReadingRepository(future);
+});
+
+class _DeferredReadingRepository implements ReadingRepository {
+  _DeferredReadingRepository(this._innerFuture);
+  final Future<ReadingRepository> _innerFuture;
+
+  Future<ReadingRepository> get _r async => await _innerFuture;
+
+  @override
+  Future<List<ChapterSummary>> listChapters(String bookId) async =>
+      (await _r).listChapters(bookId);
+
+  @override
+  Future<String> loadChapterText(String bookId, int chapterIdx) async =>
+      (await _r).loadChapterText(bookId, chapterIdx);
+
+  @override
+  Future<ReaderSession?> loadSession(String bookId) async =>
+      (await _r).loadSession(bookId);
+
+  @override
+  Future<void> saveSession(ReaderSession session) async =>
+      (await _r).saveSession(session);
+}

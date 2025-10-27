@@ -4,12 +4,13 @@ import 'package:sqflite/sqflite.dart';
 
 class LocalDb {
   static const _dbName = 'novel_reader.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 3;
 
   static const tableBook = 'book';
   static const tableSearch = 'search_index';
   static const tableMeta = '_meta';
   static const tableChapter = 'chapter';
+  static const tableReadingProgress = 'reading_progress';
 
   static Future<Database> open() async {
     final dbPath = await getDatabasesPath();
@@ -44,7 +45,8 @@ class LocalDb {
           );
         ''');
 
-        await db.execute('CREATE TABLE $tableMeta(key TEXT PRIMARY KEY, value TEXT)');
+        await db.execute(
+            'CREATE TABLE $tableMeta(key TEXT PRIMARY KEY, value TEXT)');
 
         await db.execute('''
           CREATE TABLE $tableChapter(
@@ -58,12 +60,29 @@ class LocalDb {
           );
         ''');
 
-        await db.execute('CREATE INDEX IF NOT EXISTS idx_chapter_book ON $tableChapter(bookId);');
+        await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_chapter_book ON $tableChapter(bookId);');
+        await db.execute('''
+          CREATE TABLE $tableReadingProgress(
+            bookId TEXT PRIMARY KEY,
+            chapterIdx INTEGER NOT NULL,
+            scrollOffset REAL NOT NULL DEFAULT 0
+          );
+        ''');
       },
-      onUpgrade: (db, oldV, newV) async {
-        if (oldV < 2) {
-          await db.execute('ALTER TABLE $tableBook ADD COLUMN summary TEXT;');
-          await db.execute('ALTER TABLE $tableBook ADD COLUMN rating REAL;');
+      onUpgrade: (Database db, int oldV, int newV) async {
+        // NOTE QUAN TRỌNG:
+        // KHÔNG còn ALTER TABLE book ADD COLUMN summary/rating ở đây nữa.
+
+        // chỉ lo vụ reading_progress nếu DB cũ chưa có
+        if (oldV < 3) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS $tableReadingProgress(
+              bookId TEXT PRIMARY KEY,
+              chapterIdx INTEGER NOT NULL,
+              scrollOffset REAL NOT NULL DEFAULT 0
+            );
+          ''');
         }
       },
     );

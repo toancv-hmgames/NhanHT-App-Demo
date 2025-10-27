@@ -8,8 +8,8 @@
     <color name="searchFieldColor">#FF2B2B68</color>
     <color name="selectCategory1Color">#FFF32222</color>
     <color name="selectCategory2Color">#FFF38422</color>
-    <color name="readBookButtonColor">#FFF38422</color>
-    <color name="bookRatingColor">#FFCA1E39</color>
+    <color name="bookRatingColor">#FFD5D5E3</color>
+    <color name="readBookButtonColor">#FFCA1E39</color>
     <color name="secondaryContainerGray">#FFB0BEC5</color>
     <color name="ratingPrimaryColor">#FFF77A55</color>
 </resources>

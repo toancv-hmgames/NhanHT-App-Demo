@@ -5,6 +5,7 @@ import 'package:story_reading_app/gen/assets.gen.dart';
 import 'package:story_reading_app/gen/colors.gen.dart';
 import '../../../core/di/providers.dart';
 import '../../../share/const_value.dart';
+import '../../reader/presentation/reader_page.dart';
 import 'widgets/genres.dart';
 import 'widgets/star_rating.dart';
 
@@ -143,7 +144,13 @@ class BookDetailPage extends ConsumerWidget {
                       height: 53,
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ReaderPage(bookId: book.id),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: ColorName.readBookButtonColor,
                           foregroundColor: Colors.white,

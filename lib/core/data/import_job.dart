@@ -9,7 +9,7 @@ class ImportJob {
 
   ImportJob(this.assets, this.db);
 
-  static const int dataVersion = 2;
+  static const int dataVersion = 3;
 
   Future<void> runOnceIfNeeded() async {
     // check version
