@@ -19,6 +19,9 @@ class ColorName {
   /// Color: #FFEBEBF5
   static const Color bookAuthorColor = Color(0xFFEBEBF5);
 
+  /// Color: #FFD5D5E3
+  static const Color bookRatingColor = Color(0xFFD5D5E3);
+
   /// Color: #FFF5F5FA
   static const Color bookTitleColor = Color(0xFFF5F5FA);
 
@@ -31,8 +34,17 @@ class ColorName {
   /// Color: #FF6A00
   static const Color hotColor = Color(0xFFFF6A00);
 
+  /// Color: #FFF77A55
+  static const Color ratingPrimaryColor = Color(0xFFF77A55);
+
+  /// Color: #FFCA1E39
+  static const Color readBookButtonColor = Color(0xFFCA1E39);
+
   /// Color: #FF2B2B68
   static const Color searchFieldColor = Color(0xFF2B2B68);
+
+  /// Color: #FFB0BEC5
+  static const Color secondaryContainerGray = Color(0xFFB0BEC5);
 
   /// Color: #FFF32222
   static const Color selectCategory1Color = Color(0xFFF32222);

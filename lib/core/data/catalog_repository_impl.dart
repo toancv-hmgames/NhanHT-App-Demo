@@ -58,7 +58,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
   Future<List<ChapterSummary>> listChapters(String bookId) async {
     final rows = await db.query(
       LocalDb.tableChapter,
-      where: 'book_id = ?',
+      where: 'bookId = ?',
       whereArgs: [bookId],
       orderBy: 'idx ASC',
     );
@@ -67,24 +67,23 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<String> loadChapterText(String bookId, int chapterIdx) async {
-    // Lấy path chương từ DB
     final rows = await db.query(
       LocalDb.tableChapter,
-      where: 'book_id = ? AND idx = ?',
+      columns: ['assetPath'],                  // 👈 chỉ lấy cột cần
+      where: 'bookId = ? AND idx = ?',
       whereArgs: [bookId, chapterIdx],
       limit: 1,
     );
     if (rows.isEmpty) {
       throw StateError('Chapter not found: $bookId#$chapterIdx');
     }
-    final path = rows.first['path'] as String;
 
-    // Đọc nội dung: ưu tiên assets nếu path bắt đầu bằng 'assets/'
-    if (path.startsWith('assets/')) {
-      return _bundle.loadString(path);
+    final assetPath = rows.first['assetPath'] as String;  // 👈 dùng assetPath
+
+    if (assetPath.startsWith('assets/')) {
+      return _bundle.loadString(assetPath);
     } else {
-      // file ngoài (sau này khi import .zip)
-      final file = File(path);
+      final file = File(assetPath);
       return file.readAsString();
     }
   }

@@ -4,7 +4,9 @@ import 'package:story_reading_app/gen/colors.gen.dart';
 import '../../../core/di/providers.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../share/const_value.dart';
+import '../../book_detail/presentation/book_detail_page.dart';
 import 'widgets/book_tile.dart';
+import 'widgets/categories_header_delegate.dart';
 import 'widgets/gradient_category_tab.dart';
 import 'widgets/search_field.dart';
 
@@ -26,33 +28,48 @@ class DiscoverPage extends ConsumerWidget {
           data: (books) {
             final q = query.toLowerCase();
 
-            // 1) Lọc theo text
+            // --- Lọc theo search ---
             final filtered = q.isEmpty
                 ? books
                 : books.where((b) {
-                    final title = (b.title).toLowerCase();
-                    final author = (b.author ?? '').toLowerCase();
-                    return title.contains(q) || author.contains(q);
-                  }).toList();
+              final title = (b.title).toLowerCase();
+              final author = (b.author ?? '').toLowerCase();
+              return title.contains(q) || author.contains(q);
+            }).toList();
 
-            // Chuẩn hoá chuỗi để so sánh: bỏ khoảng trắng thừa, ký tự đặc biệt, về lowercase
+            // --- Lọc theo category ---
             String _norm(String s) =>
                 s.toLowerCase().replaceAll(RegExp(AppConsts.normalValue), ' ').trim();
 
             final selectedCat = AppConsts.categories[catIdx];
             final display = filtered.where((b) {
-              // Nếu muốn "Hot" = hiển thị tất cả:
               if (_norm(selectedCat) == _norm('Hot')) return true;
-
-              final cats = (b.genres ?? []).map(_norm).toList();
+              final cats = (b.genres).map(_norm).toList();
               return cats.contains(_norm(selectedCat));
             }).toList();
 
-            return CustomScrollView(
-              slivers: [
-                // --- Search + gift: giữ nguyên ---
-                SliverToBoxAdapter(
-                  child: Padding(
+            final screenWidth = MediaQuery.sizeOf(context).width;
+            final tileWidth =
+                (screenWidth - horizontalPadding * 2 - crossAxisSpacing) / 2;
+            final tileHeight = tileWidth +
+                coverGap +
+                titleFontSize * lineHeight * titleLines +
+                4 +
+                authorFontSize * lineHeight * authorLines +
+                spacingBelow;
+
+            return NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                // 🔹 AppBar chứa SearchBar — ẩn/hiện khi cuộn
+                SliverAppBar(
+                  automaticallyImplyLeading: false,
+                  backgroundColor: ColorName.background,
+                  elevation: innerBoxIsScrolled ? 1 : 0,
+                  floating: true,
+                  snap: true,
+                  pinned: false, // AppBar không dính — sẽ ẩn/hiện
+                  expandedHeight: 55,
+                  flexibleSpace: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: Row(
                       children: [
@@ -74,81 +91,96 @@ class DiscoverPage extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           constraints: const BoxConstraints(minWidth: 40),
                           icon: Assets.images.boxGift.image(
-                              width: 24, height: 24, fit: BoxFit.contain),
+                            width: 24,
+                            height: 24,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // --- Categories
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 42,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children:
-                            List.generate(AppConsts.categories.length, (i) {
-                          final selected = i == catIdx;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => ref
-                                  .read(discoverCategoryIndexProvider.notifier)
-                                  .state = i,
-                              child: GradientCategoryTab(
-                                label: AppConsts.categories[i],
-                                selected: selected,
-                                fontSize: 16,
-                                underlineExtra: 14,
-                                underlineHeight: 2,
-                              ),
-                            ),
-                          );
-                        }),
+                // 🔸 Categories bar — luôn pinned
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: CategoriesHeaderDelegate(
+                    child: Container(
+                      color: ColorName.background,
+                      height: 50,
+                      child: _buildCategoriesBar(
+                        context,
+                        catIdx,
+                            (i) => ref
+                            .read(discoverCategoryIndexProvider.notifier)
+                            .state = i,
                       ),
                     ),
                   ),
                 ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-                // --- Nếu có sách: render Grid ---
-                if (display.isNotEmpty)
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 0,      // khoảng cách giữa hàng
-                        crossAxisSpacing: 16,     // khoảng cách giữa cột
-                        childAspectRatio: 0.71,   // tỉ lệ width/height cho mỗi BookTile
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) => BookTile(book: display[index]),
-                        childCount: display.length,
-                      ),
-                    ),
-                  )
-
-                // --- Nếu không có sách: show placeholder trong scroll ---
-                else
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Text('No results found!'),
-                    ),
-                  ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
+              // 📚 Nội dung grid
+              body: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: display.isNotEmpty
+                    ? GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  gridDelegate:
+                  SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 0,
+                    mainAxisExtent: tileHeight,
+                  ),
+                  itemCount: display.length,
+                  itemBuilder: (context, index) {
+                    final book = display[index];
+                    return BookTile(
+                      book: book,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                BookDetailPage(bookId: book.id),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                )
+                    : const Center(child: Text('No results found!')),
+              ),
             );
           },
         ),
       ),
     );
   }
+
+  Widget _buildCategoriesBar(
+      BuildContext context, int catIdx, ValueChanged<int> onTap) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: List.generate(AppConsts.categories.length, (i) {
+          final selected = i == catIdx;
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: GestureDetector(
+              onTap: () => onTap(i),
+              child: GradientCategoryTab(
+                label: AppConsts.categories[i],
+                selected: selected,
+                fontSize: 16,
+                underlineExtra: 14,
+                underlineHeight: 2,
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
 }
+

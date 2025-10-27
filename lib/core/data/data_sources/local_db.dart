@@ -1,3 +1,4 @@
+// lib/features/discover/data/data_sources/local_db.dart
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -9,6 +10,7 @@ class LocalDb {
   static const tableSearch = 'search_index';
   static const tableMeta = '_meta';
   static const tableChapter = 'chapter';
+  static const tableReadingProgress = 'reading_progress';
 
   static Future<Database> open() async {
     final dbPath = await getDatabasesPath();
@@ -16,6 +18,9 @@ class LocalDb {
     return openDatabase(
       path,
       version: _dbVersion,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE $tableBook(
@@ -24,12 +29,13 @@ class LocalDb {
             author TEXT,
             coverAsset TEXT,
             genres TEXT,
-            chapterCount INTEGER,
+            chapterCount INTEGER NOT NULL,
             updatedAt INTEGER,
             summary TEXT,
-            rating REAL,
-          )
+            rating REAL
+          );
         ''');
+
         await db.execute('''
           CREATE TABLE $tableSearch(
             bookId TEXT PRIMARY KEY,
@@ -38,20 +44,46 @@ class LocalDb {
             genres TEXT
           );
         ''');
+
         await db.execute(
-          'CREATE TABLE $tableMeta(key TEXT PRIMARY KEY, value TEXT)');
+            'CREATE TABLE $tableMeta(key TEXT PRIMARY KEY, value TEXT)');
+
         await db.execute('''
           CREATE TABLE $tableChapter(
             bookId TEXT NOT NULL,
             idx INTEGER NOT NULL,
-            id TEXT NOT NULL,
             title TEXT,
-            path TEXT NOT NULL,
+            assetPath TEXT NOT NULL,
             length INTEGER,
-            PRIMARY KEY(book_id, idx)
+            PRIMARY KEY(bookId, idx),
+            FOREIGN KEY(bookId) REFERENCES $tableBook(id) ON DELETE CASCADE
           );
+        ''');
+
+        await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_chapter_book ON $tableChapter(bookId);');
+        await db.execute('''
+          CREATE TABLE $tableReadingProgress(
+            bookId TEXT PRIMARY KEY,
+            chapterIdx INTEGER NOT NULL,
+            scrollOffset REAL NOT NULL DEFAULT 0
+          );
+        ''');
+      },
+      onUpgrade: (Database db, int oldV, int newV) async {
+        // NOTE QUAN TRỌNG:
+        // KHÔNG còn ALTER TABLE book ADD COLUMN summary/rating ở đây nữa.
+
+        // chỉ lo vụ reading_progress nếu DB cũ chưa có
+        if (oldV < 3) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS $tableReadingProgress(
+              bookId TEXT PRIMARY KEY,
+              chapterIdx INTEGER NOT NULL,
+              scrollOffset REAL NOT NULL DEFAULT 0
+            );
           ''');
-        await db.execute('CREATE INDEX IF NOT EXISTS idx_chapters_book ON chapters(book_id);');
+        }
       },
     );
   }

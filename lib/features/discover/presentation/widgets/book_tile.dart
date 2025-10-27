@@ -59,7 +59,7 @@ class BookTile extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            SizedBox(height: w * 0.35, child: _meta(titleStyle, authorStyle)),
+            SizedBox(child: _meta(titleStyle, authorStyle)),
           ],
         );
       }),
