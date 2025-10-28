@@ -47,6 +47,10 @@ class ReaderState {
 
   final ReaderThemeMode themeMode;
 
+  final double fontPx; // cỡ chữ tính ra pixel hiển thị (ví dụ 18)
+  final ReaderReadingMode readingMode;
+  final bool uiChromeVisible;
+
   const ReaderState({
     required this.bookId,
     required this.loadedChapters,
@@ -59,6 +63,9 @@ class ReaderState {
     required this.error,
     required this.isRestoring,
     required this.themeMode,
+    required this.fontPx,
+    required this.readingMode,
+    required this.uiChromeVisible,
   });
 
   factory ReaderState.initial(String bookId) {
@@ -74,6 +81,9 @@ class ReaderState {
       error: null,
       isRestoring: true,
       themeMode: ReaderThemeMode.dark,
+      fontPx: 16.0,
+      readingMode: ReaderReadingMode.scroll,
+      uiChromeVisible: false,
     );
   }
 
@@ -88,6 +98,9 @@ class ReaderState {
     Object? error,
     bool? isRestoring,
     ReaderThemeMode? themeMode,
+    double? fontPx,
+    ReaderReadingMode? readingMode,
+    bool? uiChromeVisible,
   }) {
     return ReaderState(
       bookId: bookId,
@@ -102,6 +115,9 @@ class ReaderState {
       error: error ?? this.error,
       isRestoring: isRestoring ?? this.isRestoring,
       themeMode: themeMode ?? this.themeMode,
+      fontPx: fontPx ?? this.fontPx,
+      readingMode: readingMode ?? this.readingMode,
+      uiChromeVisible: uiChromeVisible ?? this.uiChromeVisible,
     );
   }
 }

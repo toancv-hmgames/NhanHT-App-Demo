@@ -1,15 +1,15 @@
-// lib/features/reader/presentation/reader_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../gen/colors.gen.dart';
 import '../../../core/di/providers.dart'; // <- có readerVMProvider(bookId)
 import '../../../share/const_value.dart';
+import 'reader_state.dart';
 import 'reader_view_model.dart';
 import 'widgets/chapter_block.dart';
 import 'widgets/chapter_header.dart';
 import 'widgets/measure_size.dart';
+import 'widgets/reader_settings_sheet.dart';
 
 class ReaderPage extends ConsumerStatefulWidget {
   final String bookId;
@@ -39,12 +39,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
 
     final state = ref.watch(readerVMProvider(widget.bookId));
 
-    // ----- Trạng thái init / lỗi -----
-    // initLoading = true lúc VM mới khởi tạo và đang load nội dung chương đầu tiên.
-    // Lưu ý: ReaderVM giờ đã set sớm activeChapterTitle
-    // nên ta vẫn muốn Scaffold và AppBar render được ngay cả khi initLoading.
-    // => nghĩa là ta KHÔNG return CircularProgressIndicator toàn màn nếu còn initLoading,
-    //    trừ khi thậm chí chưa có activeChapterTitle nào để show.
+    // ----- Trạng thái init / lỗi blocking -----
     final isInitialBlocking =
         state.initLoading && state.activeChapterTitle.isEmpty;
 
@@ -62,32 +57,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
     final chapterTitleColor = isDark ? ColorName.bookTitleColor : Colors.black;
     final bodyTextColor = isDark ? ColorName.bookTitleColor : Colors.black87;
 
+    // ----- Lỗi nặng (không load được gì) -----
     if (state.error != null && state.loadedChapters.isEmpty) {
-      // Lỗi nặng, không có chapter nào load được
       return Scaffold(
         backgroundColor: ColorName.background,
-        appBar: AppBar(
-          scrolledUnderElevation: 0,
-          automaticallyImplyLeading: true,
-          backgroundColor: bgColor,
-          surfaceTintColor: Colors.white,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            color: ColorName.bookTitleColor,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          titleSpacing: 0,
-          title: Text(
-            'Error',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: titleColor,
-            ),
-          ),
-        ),
         body: Center(
           child: Text(
             'Lỗi: ${state.error}',
@@ -100,118 +73,115 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
     // ----- Dữ liệu chapters -----
     final chapters = state.loadedChapters;
 
-    // ----- Tiêu đề AppBar -----
-    // Trước đây bạn lấy từ chapter đang ở gần top (tìm trong chapters).
-    // Bây giờ dùng thẳng state.activeChapterTitle.
-    // Vì VM đã set activeChapterTitle rất sớm,
-    // AppBar sẽ hiển thị ngay lập tức thay vì đợi loadChapterText.
+    // ----- Tiêu đề hiển thị trên top bar -----
     final appBarTitle = state.activeChapterTitle.isNotEmpty
         ? state.activeChapterTitle
         : (chapters.isNotEmpty ? chapters.first.title : 'Loading…');
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: true,
-        backgroundColor: bgColor,
-        surfaceTintColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          color: titleColor,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        titleSpacing: 0,
-        title: Text(
-          appBarTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: titleColor,
-          ),
-        ),
-      ),
-      body: Builder(
-        builder: (context) {
-          // Trường hợp đang init nhưng đã có title, nhưng nội dung chưa load xong:
-          // -> hiển thị spinner ở body thay vì che trắng cả màn.
-          if (state.initLoading && chapters.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          // Render list chương dạng "cuộn dọc vô hạn"
-          return ListView.builder(
-            controller: vm.scrollController,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 24,
-            ),
-            itemCount: chapters.length +
-                1, // thêm 1 slot cuối để show dấu hiệu "đang load next"
-            itemBuilder: (context, index) {
-              // Nếu là phần tử extra cuối danh sách -> hiển thị loading more next
-              final isExtraTail = index == chapters.length;
-              if (isExtraTail) {
-                if (state.isLoadingMoreNext) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
+      body: Stack(
+        children: [
+          // NỘI DUNG ĐỌC
+          Positioned.fill(
+            child: Builder(
+              builder: (context) {
+                // Nếu đang init mà chưa có nội dung chương -> spinner body
+                if (state.initLoading && chapters.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
                   );
-                } else {
-                  return const SizedBox.shrink();
                 }
-              }
 
-              final ch = chapters[index];
+                // GestureDetector để toggle hiện/ẩn chrome (top/bottom bars)
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    vm.toggleChrome();
+                  },
+                  child: ListView.builder(
+                    controller: vm.scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 24,
+                    ),
+                    itemCount: chapters.length + 1,
+                    itemBuilder: (context, index) {
+                      final isExtraTail = index == chapters.length;
+                      if (isExtraTail) {
+                        if (state.isLoadingMoreNext) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        } else {
+                          return const SizedBox.shrink();
+                        }
+                      }
 
-              return MeasureSize(
-                onChange: (size) {
-                  if (size != null) {
-                    vm.reportChapterLayout(
-                      chapterIdx: ch.chapterIdx,
-                      heightPx: size.height,
-                    );
-                  }
-                },
-                child: ChapterBlock(
-                  title: ch.title,
-                  content: ch.content,
-                  // Với UX đọc liên tục: header chỉ cần hiện cho chương KHÔNG phải chương đầu list.
-                  showHeader: index != 0,
-                  titleColor: chapterTitleColor,
-                  bodyColor: bodyTextColor,
-                ),
-              );
-            },
-          );
-        },
-      ),
-      bottomNavigationBar: BottomAppBar(
-        color: bgColor,
-        elevation: 0,
-        child:
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const SizedBox(width: 24),
-          IconButton(
-            onPressed: _showChapterList,
-            icon: const Icon(Icons.list),
+                      final ch = chapters[index];
+
+                      return MeasureSize(
+                        onChange: (size) {
+                          if (size != null) {
+                            vm.reportChapterLayout(
+                              chapterIdx: ch.chapterIdx,
+                              heightPx: size.height,
+                            );
+                          }
+                        },
+                        child: ChapterBlock(
+                          title: ch.title,
+                          content: ch.content,
+                          // chỉ header khi KHÔNG phải chương đầu list
+                          showHeader: index != 0,
+                          titleColor: chapterTitleColor,
+                          bodyColor: bodyTextColor,
+                          fontPx: state.fontPx,
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           ),
-          IconButton(
-            onPressed: vm.toggleTheme,
-            icon: const Icon(Icons.sunny),
+
+          // TOP BAR ANIMATED
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: _AnimatedTopBar(
+              visible: state.uiChromeVisible,
+              bgColor: bgColor,
+              titleColor: titleColor,
+              title: appBarTitle,
+              onBack: () => Navigator.of(context).pop(),
+            ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.text_format_rounded),
+
+          // BOTTOM BAR ANIMATED
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _AnimatedBottomBar(
+              visible: state.uiChromeVisible,
+              bgColor: bgColor,
+              onShowChapterList: _showChapterList,
+              onToggleTheme: vm.toggleTheme,
+              onShowReaderSettings: () {
+                _showReaderSettingsSheet(
+                  context: context,
+                  bookId: widget.bookId,
+                );
+              },
+            ),
           ),
-          const SizedBox(width: 24),
-        ]),
+        ],
       ),
     );
   }
@@ -223,7 +193,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
       barrierLabel: 'Close',
       barrierColor: Colors.black54,
       pageBuilder: (context, anim1, anim2) {
-        // không dùng pageBuilder body vì mình sẽ custom trong transitionBuilder
         return const SizedBox.shrink();
       },
       transitionBuilder: (context, anim, secondaryAnim, child) {
@@ -261,6 +230,173 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
         );
       },
       transitionDuration: const Duration(milliseconds: 250),
+    );
+  }
+
+  void _showReaderSettingsSheet({
+    required BuildContext context,
+    required String bookId,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        return ReaderSettingsSheet(bookId: bookId);
+      },
+    );
+  }
+}
+
+///
+/// Thanh top bar trượt từ trên xuống + fade
+///
+class _AnimatedTopBar extends StatelessWidget {
+  final bool visible;
+  final Color bgColor;
+  final Color titleColor;
+  final String title;
+  final VoidCallback onBack;
+
+  const _AnimatedTopBar({
+    required this.visible,
+    required this.bgColor,
+    required this.titleColor,
+    required this.title,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      offset: visible ? Offset.zero : const Offset(0, -1),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: visible ? 1 : 0,
+        child: Container(
+          padding: const EdgeInsets.only(
+            top: 48, // chừa status bar + khoảng thở
+            left: 16,
+            right: 16,
+            bottom: 12,
+          ),
+          decoration: BoxDecoration(
+            color: bgColor.withOpacity(0.92),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 20,
+                ),
+                color: titleColor,
+                onPressed: onBack,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: titleColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+///
+/// Thanh bottom bar trượt từ dưới lên + fade
+///
+class _AnimatedBottomBar extends StatelessWidget {
+  final bool visible;
+  final Color bgColor;
+  final VoidCallback onShowChapterList;
+  final VoidCallback onToggleTheme;
+  final VoidCallback onShowReaderSettings;
+
+  const _AnimatedBottomBar({
+    required this.visible,
+    required this.bgColor,
+    required this.onShowChapterList,
+    required this.onToggleTheme,
+    required this.onShowReaderSettings,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      offset: visible ? Offset.zero : const Offset(0, 1),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: visible ? 1 : 0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgColor.withOpacity(0.92),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(16),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 12,
+            bottom: 12,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  onPressed: onShowChapterList,
+                  icon: const Icon(Icons.list),
+                ),
+                IconButton(
+                  onPressed: onToggleTheme,
+                  icon: const Icon(Icons.sunny),
+                ),
+                IconButton(
+                  onPressed: onShowReaderSettings,
+                  icon: const Icon(Icons.text_format_rounded),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

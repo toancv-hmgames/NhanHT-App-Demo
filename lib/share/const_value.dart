@@ -30,3 +30,8 @@ enum ReaderThemeMode {
   light,
   dark,
 }
+
+enum ReaderReadingMode {
+  scroll,
+  slide,
+}

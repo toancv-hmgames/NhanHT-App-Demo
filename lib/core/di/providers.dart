@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:story_reading_app/features/library/presentation/library_state.dart';
+import 'package:story_reading_app/features/library/presentation/library_view_model.dart';
+import 'package:story_reading_app/features/reader/domain/entities/reader_pref.dart';
 
 // Discover (presentation)
 import '../../features/discover/presentation/discover_state.dart';
@@ -169,6 +172,15 @@ final chaptersMetaProvider =
   return await readingRepo.listChapters(bookId);
 });
 
+// -------------------------------
+// Library (VM + UI state)
+// -------------------------------
+
+final libraryVMProvider = StateNotifierProvider<LibraryVM, LibraryState>((ref) {
+  final getBooks = ref.watch(getBooksProvider);
+  return LibraryVM(getBooks);
+});
+
 /// -------------------------------
 /// Reading Repository (đọc chương + progress)
 /// -------------------------------
@@ -206,4 +218,14 @@ class _DeferredReadingRepository implements ReadingRepository {
   @override
   Future<void> saveSession(ReaderSession session) async =>
       (await _r).saveSession(session);
+
+  @override
+  Future<ReaderPrefs?> loadGlobalReaderPrefs() async {
+    return (await _r).loadGlobalReaderPrefs();
+  }
+
+  @override
+  Future<void> saveGlobalReaderPrefs(ReaderPrefs prefs) async {
+    return (await _r).saveGlobalReaderPrefs(prefs);
+  }
 }

@@ -4,13 +4,15 @@ import 'package:sqflite/sqflite.dart';
 
 class LocalDb {
   static const _dbName = 'novel_reader.db';
-  static const _dbVersion = 3;
+  static const _dbVersion = 4;
 
   static const tableBook = 'book';
   static const tableSearch = 'search_index';
   static const tableMeta = '_meta';
   static const tableChapter = 'chapter';
   static const tableReadingProgress = 'reading_progress';
+  static const appSettings = 'app_settings';
+  static const reader_prefs = 'reader_prefs';
 
   static Future<Database> open() async {
     final dbPath = await getDatabasesPath();
@@ -62,12 +64,26 @@ class LocalDb {
 
         await db.execute(
             'CREATE INDEX IF NOT EXISTS idx_chapter_book ON $tableChapter(bookId);');
+        // await db.execute('''
+        //   CREATE TABLE $appSettings (
+        //   key TEXT PRIMARY KEY,
+        //   value TEXT NOT NULL
+        // );
+        // ''');
         await db.execute('''
           CREATE TABLE $tableReadingProgress(
             bookId TEXT PRIMARY KEY,
             chapterIdx INTEGER NOT NULL,
             scrollOffset REAL NOT NULL DEFAULT 0
           );
+        ''');
+        await db.execute('''
+          CREATE TABLE $reader_prefs (
+          id INTEGER PRIMARY KEY CHECK (id = 0),
+          font_px REAL NOT NULL,
+          theme_mode TEXT NOT NULL,
+          reading_mode TEXT NOT NULL
+        );
         ''');
       },
       onUpgrade: (Database db, int oldV, int newV) async {
@@ -81,6 +97,16 @@ class LocalDb {
               bookId TEXT PRIMARY KEY,
               chapterIdx INTEGER NOT NULL,
               scrollOffset REAL NOT NULL DEFAULT 0
+            );
+          ''');
+        }
+        if (oldV < 4) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS $reader_prefs (
+              id INTEGER PRIMARY KEY CHECK (id = 0),
+              font_px REAL NOT NULL,
+              theme_mode TEXT NOT NULL,
+              reading_mode TEXT NOT NULL
             );
           ''');
         }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../../../core/domain/entities/chapter_summary.dart';
 import '../../../share/const_value.dart';
 import '../../reader/domain/reading_repository.dart';
+import '../domain/entities/reader_pref.dart';
 import 'reader_state.dart';
 
 class ReaderVM extends StateNotifier<ReaderState> {
@@ -24,9 +25,9 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
   // === Runtime flags / state machine ===
   bool _isRestoringScroll =
-  false; // đang cố khôi phục offset đã lưu (chỉ dùng trong init ban đầu)
+      false; // đang cố khôi phục offset đã lưu (chỉ dùng trong init ban đầu)
   bool _suppressActiveDetect =
-  false; // tạm thời KHÔNG cho _updateActiveChapterFromScroll() đụng vào activeChapterIdx
+      false; // tạm thời KHÔNG cho _updateActiveChapterFromScroll() đụng vào activeChapterIdx
   bool _loadingNext = false;
   bool _loadingPrev = false;
 
@@ -43,6 +44,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
     required String bookId,
   })  : _repo = repo,
         super(ReaderState.initial(bookId)) {
+    scrollController.addListener(_onScroll);
     _init(bookId);
   }
 
@@ -57,6 +59,16 @@ class ReaderVM extends StateNotifier<ReaderState> {
   //
   Future<void> _init(String bookId) async {
     try {
+      // 0. load global reader prefs (font size, theme, reading mode)
+      final prefs = await _repo.loadGlobalReaderPrefs();
+      if (prefs != null) {
+        state = state.copyWith(
+          fontPx: prefs.fontPx,
+          themeMode: prefs.themeMode,
+          readingMode: prefs.readingMode,
+        );
+      }
+
       // 1. load toàn bộ chapter metadata (SQLite, rất nhanh)
       _allChapters = await _repo.listChapters(bookId);
       if (_allChapters.isEmpty) {
@@ -130,9 +142,9 @@ class ReaderVM extends StateNotifier<ReaderState> {
   }
 
   Future<ReaderChapterItem> _loadChapterItem(
-      String bookId,
-      int chapterIdx,
-      ) async {
+    String bookId,
+    int chapterIdx,
+  ) async {
     final meta = _allChapters[chapterIdx];
     final content = await _repo.loadChapterText(bookId, chapterIdx);
     return ReaderChapterItem(
@@ -162,7 +174,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
     final activeChapIdx = state.activeChapterIdx;
     final idxInList = state.loadedChapters.indexWhere(
-          (c) => c.chapterIdx == activeChapIdx,
+      (c) => c.chapterIdx == activeChapIdx,
     );
     if (idxInList < 0) return;
 
@@ -208,9 +220,9 @@ class ReaderVM extends StateNotifier<ReaderState> {
   }
 
   Future<void> _scrollToLoadedListIndex(
-      int listIndex, {
-        double insideOffset = 0.0,
-      }) async {
+    int listIndex, {
+    double insideOffset = 0.0,
+  }) async {
     if (!scrollController.hasClients) return;
     if (listIndex < 0 || listIndex >= state.loadedChapters.length) return;
 
@@ -228,15 +240,31 @@ class ReaderVM extends StateNotifier<ReaderState> {
     );
   }
 
-  // -------- THEME TOGGLE --------
-  void toggleTheme() {
+  // -------- FONT SIZE & READING MODE --------
+  Future<void> increaseFont() async {
+    final newSize = (state.fontPx + 1).clamp(12.0, 28.0);
+    state = state.copyWith(fontPx: newSize);
+    await _savePrefsSnapshot();
+  }
+
+  Future<void> decreaseFont() async {
+    final newSize = (state.fontPx - 1).clamp(12.0, 28.0);
+    state = state.copyWith(fontPx: newSize);
+    await _savePrefsSnapshot();
+  }
+
+  Future<void> toggleTheme() async {
     final nextMode = state.themeMode == ReaderThemeMode.dark
         ? ReaderThemeMode.light
         : ReaderThemeMode.dark;
-
     state = state.copyWith(themeMode: nextMode);
+    await _savePrefsSnapshot();
+  }
 
-    // (tương lai) có thể lưu xuống DB để nhớ theme người dùng
+  Future<void> setReadingMode(ReaderReadingMode mode) async {
+    if (state.readingMode == mode) return;
+    state = state.copyWith(readingMode: mode);
+    await _savePrefsSnapshot();
   }
 
   /// User bấm "Go to chapter X" trong side panel nhanh:
@@ -251,7 +279,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
     final pickedTitle = meta.title ?? '';
 
     final listIndex = state.loadedChapters.indexWhere(
-          (it) => it.chapterIdx == globalChapterIdx,
+      (it) => it.chapterIdx == globalChapterIdx,
     );
 
     if (listIndex == -1) {
@@ -361,7 +389,6 @@ class ReaderVM extends StateNotifier<ReaderState> {
     }
   }
 
-
   double? _computeOffsetInsideActiveChapter() {
     if (!scrollController.hasClients) return null;
     if (state.loadedChapters.isEmpty) return null;
@@ -460,7 +487,6 @@ class ReaderVM extends StateNotifier<ReaderState> {
     );
   }
 
-
   // -------- SCROLL LISTENER / INFINITE LOAD --------
   //
   // Quy tắc mới:
@@ -503,12 +529,13 @@ class ReaderVM extends StateNotifier<ReaderState> {
       _loadPrevChapter();
     }
 
+    if (state.uiChromeVisible) {
+      // ẩn khi user cuộn
+      hideChrome();
+    }
+
     _scheduleSaveProgress();
   }
-
-
-
-
 
   Future<void> _loadNextChapter() async {
     if (_loadingNext) return;
@@ -556,7 +583,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
 
       // 1. Ghi lại offset hiện tại.
       final oldOffset =
-      scrollController.hasClients ? scrollController.position.pixels : 0.0;
+          scrollController.hasClients ? scrollController.position.pixels : 0.0;
 
       // 2. Cập nhật list: prepend prevChap
       final updated = [prevChap, ...state.loadedChapters];
@@ -659,6 +686,19 @@ class ReaderVM extends StateNotifier<ReaderState> {
     await _repo.saveSession(session);
   }
 
+  // -------- UI CHROME VISIBILITY --------
+  void showChrome() {
+    state = state.copyWith(uiChromeVisible: true);
+  }
+
+  void hideChrome() {
+    state = state.copyWith(uiChromeVisible: false);
+  }
+
+  void toggleChrome() {
+    state = state.copyWith(uiChromeVisible: !state.uiChromeVisible);
+  }
+
   // -------- LAYOUT REPORTING --------
   //
   // Gọi khi mỗi ChapterBlock đo được kích thước (chiều cao).
@@ -689,7 +729,7 @@ class ReaderVM extends StateNotifier<ReaderState> {
       final targetIdx = _pendingJumpChapterIdx!;
       // xem targetIdx đang đứng ở vị trí thứ mấy trong loadedChapters
       final listPos = state.loadedChapters.indexWhere(
-            (it) => it.chapterIdx == targetIdx,
+        (it) => it.chapterIdx == targetIdx,
       );
       if (listPos != -1) {
         // kiểm tra đã đo đủ chiều cao của tất cả mục trước nó chưa
@@ -727,6 +767,14 @@ class ReaderVM extends StateNotifier<ReaderState> {
     _updateActiveChapterFromScroll();
   }
 
+  Future<void> _savePrefsSnapshot() async {
+    final prefs = ReaderPrefs(
+      fontPx: state.fontPx,
+      themeMode: state.themeMode,
+      readingMode: state.readingMode,
+    );
+    await _repo.saveGlobalReaderPrefs(prefs);
+  }
 
   @override
   void dispose() {

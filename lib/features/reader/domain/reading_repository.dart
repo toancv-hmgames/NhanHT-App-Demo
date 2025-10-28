@@ -1,4 +1,5 @@
 import '../../../core/domain/entities/chapter_summary.dart';
+import 'entities/reader_pref.dart';
 
 class ReaderSession {
   final String bookId;
@@ -20,4 +21,7 @@ abstract class ReadingRepository {
   // load / save progress đọc
   Future<ReaderSession?> loadSession(String bookId);
   Future<void> saveSession(ReaderSession session);
+
+  Future<ReaderPrefs?> loadGlobalReaderPrefs();
+  Future<void> saveGlobalReaderPrefs(ReaderPrefs prefs);
 }
