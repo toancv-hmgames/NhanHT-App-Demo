@@ -9,7 +9,7 @@ class ImportJob {
 
   ImportJob(this.assets, this.db);
 
-  static const int dataVersion = 2;
+  static const int dataVersion = 3;
 
   Future<void> runOnceIfNeeded() async {
     // check version
@@ -27,6 +27,7 @@ class ImportJob {
     // xoa DB cu
     await db.delete(LocalDb.tableBook);
     await db.delete(LocalDb.tableSearch);
+    await db.delete(LocalDb.tableChapter);
 
     // Load books
     final books = await assets.loadBooksJson();
@@ -61,12 +62,20 @@ class ImportJob {
           'genres': (b['genres'] as List?)?.join(',') ?? '',
         });
 
-        batch.insert(LocalDb.tableChapter, {
-          'bookId': id,
-          'title': b['title'],
-          'author': b['author'],
-          'genres': (b['genres'] as List?)?.join(',') ?? '',
-        });
+        // 3) Ghi CHAPTERS (ĐÚNG CỘT)
+        for (var i = 0; i < chapters.length; i++) {
+          final path = chapters[i];                 // vd: assets/books/<id>/ch_001.txt
+          final chTitle = _titleFromPath(path) ?? 'Chapter ${i + 1}';
+          // final length = await _maybeAssetLength(path); // có thể trả null nếu bạn chưa cần
+
+          batch.insert(LocalDb.tableChapter, {
+            'bookId': id,
+            'idx': i,
+            'title': chTitle,
+            'assetPath': path,   // 👈 KHỚP cột trong LocalDb
+            'length': null,    // null cũng được
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
 
         debugPrint('✅ Imported book "$id" ($realCount chapters)');
       } catch (e) {
@@ -83,5 +92,12 @@ class ImportJob {
 
     await batch.commit(noResult: true);
     debugPrint('🏁 ImportJob completed (v$dataVersion).');
+  }
+
+  String? _titleFromPath(String p) {
+    final name = p.split('/').last;          // ch_001.txt
+    final base = name.split('.').first;      // ch_001
+    final numStr = RegExp(r'\d+').stringMatch(base);
+    return numStr != null ? 'Chapter $numStr' : null;
   }
 }
